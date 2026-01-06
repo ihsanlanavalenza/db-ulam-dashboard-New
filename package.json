@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "axios": "^1.11.0",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0",
+    "react-multi-select-component": "^4.3.4",
+    "react-select": "^5.10.2"
+  }
+}
