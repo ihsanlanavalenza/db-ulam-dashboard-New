@@ -60,8 +60,8 @@ const buildWhereClause = (req, options = {}) => {
  */
 const buildBranchWhereClause = (req) => {
   return buildWhereClause(req, {
-    cabangColumn: 'NAMA_CABANG',
-    unitColumn: 'NAMA_UNIT'
+    cabangColumn: 'Nama_Cabang',
+    unitColumn: 'Nama_Unit'
   });
 };
 
@@ -79,14 +79,14 @@ const getUserLevelFilters = (req) => {
   
   if (userFilter.unit_id) {
     // Unit level: only show their unit (and their cabang for cabang dropdown)
-    cabangFilter = 'WHERE LOWER(NAMA_CABANG) LIKE ?';
-    unitFilter = 'WHERE LOWER(NAMA_UNIT) LIKE ?';
+    cabangFilter = 'WHERE LOWER(Nama_Cabang) LIKE ?';
+    unitFilter = 'WHERE LOWER(Nama_Unit) LIKE ?';
     params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
     params.push(`%${escapeLikeWildcards(userFilter.unit_id.toLowerCase())}%`);
   } else if (userFilter.cabang_id) {
     // Cabang level: only show units in their cabang
-    cabangFilter = 'WHERE LOWER(NAMA_CABANG) LIKE ?';
-    unitFilter = 'WHERE LOWER(NAMA_CABANG) LIKE ?';
+    cabangFilter = 'WHERE LOWER(Nama_Cabang) LIKE ?';
+    unitFilter = 'WHERE LOWER(Nama_Cabang) LIKE ?';
     params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
     params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
   }

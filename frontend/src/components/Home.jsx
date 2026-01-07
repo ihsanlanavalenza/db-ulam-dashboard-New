@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { dataAPI } from '../services/api';
 import MapComponent from './MapComponent';
 
 const Home = ({ selectedCabang, selectedUnit }) => {
   const [locations, setLocations] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:3001/api/branch-locations", {
-      params: {
-        cabang: selectedCabang,
-        unit: selectedUnit
-      }
+    dataAPI.getBranchLocations({
+      cabang: selectedCabang,
+      unit: selectedUnit
     })
     .then((res) => setLocations(res.data))
     .catch((err) => console.error("Error fetching locations", err));

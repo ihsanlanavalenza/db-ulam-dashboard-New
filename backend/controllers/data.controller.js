@@ -10,15 +10,15 @@ const getBranchLocations = async (req, res) => {
 
   const query = `
     SELECT 
-      COALESCE(LATITUDE, '0') AS LATITUDE, 
-      COALESCE(LONGITUDE, '0') AS LONGITUDE, 
-      NAMA_UNIT 
-    FROM md_unit 
+      COALESCE(Latitude, '0') AS LATITUDE, 
+      COALESCE(Longitude, '0') AS LONGITUDE, 
+      Nama_Unit AS NAMA_UNIT
+    FROM master_data_branch_new 
     ${whereClause || 'WHERE 1=1'}
-    AND LATITUDE IS NOT NULL 
-    AND LONGITUDE IS NOT NULL
-    AND LATITUDE != '' 
-    AND LONGITUDE != ''
+    AND Latitude IS NOT NULL 
+    AND Longitude IS NOT NULL
+    AND Latitude != '' 
+    AND Longitude != ''
   `;
   
   try {
@@ -46,14 +46,14 @@ const getFilters = async (req, res) => {
     const response = { cabang: [], unit: [] };
 
     // Get cabang list based on user level
-    const cabangQuery = `SELECT DISTINCT NAMA_CABANG FROM md_unit ${cabangFilter} ORDER BY NAMA_CABANG`;
+    const cabangQuery = `SELECT DISTINCT Nama_Cabang FROM master_data_branch_new ${cabangFilter} ORDER BY Nama_Cabang`;
     const [cabangResults] = await db.promise().query(cabangQuery, params.slice(0, 1));
-    response.cabang = cabangResults.map(row => row.NAMA_CABANG);
+    response.cabang = cabangResults.map(row => row.Nama_Cabang);
 
     // Get unit list based on user level
-    const unitQuery = `SELECT DISTINCT NAMA_UNIT FROM md_unit ${unitFilter} ORDER BY NAMA_UNIT`;
+    const unitQuery = `SELECT DISTINCT Nama_Unit FROM master_data_branch_new ${unitFilter} ORDER BY Nama_Unit`;
     const [unitResults] = await db.promise().query(unitQuery, params.slice(params.length === 2 ? 1 : 0));
-    response.unit = unitResults.map(row => row.NAMA_UNIT);
+    response.unit = unitResults.map(row => row.Nama_Unit);
 
     res.json(response);
   } catch (err) {
@@ -247,9 +247,9 @@ const getGrafikProductivity = (req, res) => {
     FROM (
       SELECT EOM,
              STR_TO_DATE(CONCAT('01 ', EOM), '%d %b %y') AS eom_date
-      FROM Calender
+      FROM calender
     ) c
-    LEFT JOIN SummaryMonthly s
+    LEFT JOIN summarymonthly s
       ON YEAR(c.eom_date) = YEAR(
            COALESCE(
              STR_TO_DATE(s.Periode, '%d/%m/%Y %H:%i:%s'),
@@ -282,7 +282,7 @@ const getGrafikProductivity = (req, res) => {
     FROM (
       SELECT EOM,
             STR_TO_DATE(CONCAT('01 ', EOM), '%d %b %y') AS eom_date
-      FROM Calender
+      FROM calender
     ) c
     LEFT JOIN \`For Grafik Live ULaMM\` s   -- ✅ ganti \ menjadi backtick
       ON YEAR(c.eom_date) = YEAR(
@@ -569,7 +569,7 @@ const getGrafikPortofolio = (req, res) => {
             STR_TO_DATE(CONCAT('01 ', EOM), '%d %b %y') AS eom_date
       FROM calender
     ) c
-    LEFT JOIN SummaryMonthly s
+    LEFT JOIN summarymonthly s
       ON YEAR(c.eom_date) = YEAR(STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'))
       AND MONTH(c.eom_date) = MONTH(STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'))
       AND (? = 'All' OR s.Cabang = ?)
@@ -765,7 +765,7 @@ const getGrowth = async (req, res) => {
           CAST(OSPar  AS DECIMAL(20,2)) AS OSPar,
           CAST(OS_LAR AS DECIMAL(20,2)) AS OS_LAR,
           CAST(OSNPL  AS DECIMAL(20,2)) AS OSNPL
-        FROM SummaryMonthly
+        FROM summarymonthly
         WHERE 1=1
     `;
 

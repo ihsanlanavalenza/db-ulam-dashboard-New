@@ -53,6 +53,16 @@ app.get("/", (req, res) => {
   res.send("Backend MBU running.");
 });
 
+// Admin route
+app.get("/admin", (req, res) => {
+  res.json({ 
+    success: true, 
+    message: "Admin panel endpoint",
+    server: "MBU Dashboard Backend",
+    version: "1.0.0"
+  });
+});
+
 // Error handling middleware (must be last)
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 app.use(notFound); // 404 handler
