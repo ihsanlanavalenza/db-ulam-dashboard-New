@@ -1,6 +1,6 @@
 // src/TrenPortofolio.js
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import { dataAPI } from "./services/api";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, BarChart, Bar, Area
@@ -31,9 +31,7 @@ const TrenPortofolio = ({ selectedCabang, selectedUnit }) => {
     const unit = selectedUnit || "All";
 
     try {
-      const res = await axios.get("http://localhost:3001/api/grafik-tren-portofolio", {
-        params: { cabang, unit }
-      });
+      const res = await dataAPI.getTrenPortofolioGrafik({ cabang, unit });
 
       const summary = Array.isArray(res.data.trenPortofolio_Summary) ? res.data.trenPortofolio_Summary : [];
       const fgl = Array.isArray(res.data.trenPortofolio_FGL) ? res.data.trenPortofolio_FGL : [];

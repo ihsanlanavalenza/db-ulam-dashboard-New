@@ -9,9 +9,16 @@ const getBranchLocations = async (req, res) => {
   const { whereClause, params } = buildBranchWhereClause(req);
 
   const query = `
-    SELECT LATITUDE, LONGITUDE, NAMA_UNIT 
-    FROM Master_Data_Branch_New 
+    SELECT 
+      COALESCE(LATITUDE, '0') AS LATITUDE, 
+      COALESCE(LONGITUDE, '0') AS LONGITUDE, 
+      NAMA_UNIT 
+    FROM md_unit 
     ${whereClause || 'WHERE 1=1'}
+    AND LATITUDE IS NOT NULL 
+    AND LONGITUDE IS NOT NULL
+    AND LATITUDE != '' 
+    AND LONGITUDE != ''
   `;
   
   try {
@@ -21,7 +28,7 @@ const getBranchLocations = async (req, res) => {
       ...loc,
       LATITUDE: parseFloat(loc.LATITUDE.replace(',', '.')),
       LONGITUDE: parseFloat(loc.LONGITUDE.replace(',', '.')),
-    }));
+    })).filter(loc => !isNaN(loc.LATITUDE) && !isNaN(loc.LONGITUDE));
 
     res.json(cleaned);
   } catch (err) {
@@ -39,12 +46,12 @@ const getFilters = async (req, res) => {
     const response = { cabang: [], unit: [] };
 
     // Get cabang list based on user level
-    const cabangQuery = `SELECT DISTINCT NAMA_CABANG FROM Master_Data_Branch_New ${cabangFilter} ORDER BY NAMA_CABANG`;
+    const cabangQuery = `SELECT DISTINCT NAMA_CABANG FROM md_unit ${cabangFilter} ORDER BY NAMA_CABANG`;
     const [cabangResults] = await db.promise().query(cabangQuery, params.slice(0, 1));
     response.cabang = cabangResults.map(row => row.NAMA_CABANG);
 
     // Get unit list based on user level
-    const unitQuery = `SELECT DISTINCT NAMA_UNIT FROM Master_Data_Branch_New ${unitFilter} ORDER BY NAMA_UNIT`;
+    const unitQuery = `SELECT DISTINCT NAMA_UNIT FROM md_unit ${unitFilter} ORDER BY NAMA_UNIT`;
     const [unitResults] = await db.promise().query(unitQuery, params.slice(params.length === 2 ? 1 : 0));
     response.unit = unitResults.map(row => row.NAMA_UNIT);
 
@@ -400,7 +407,7 @@ const getGrafikTrenPortofolio = async (req, res) => {
       return { whereSQL: whereClauses.length ? "WHERE " + whereClauses.join(" AND ") : "", params };
     }
 
-    // Buat SQL dan params untuk SummaryMonthly
+    // Buat SQL dan params untuk Summary_Realtime_ULaMM
     const { whereSQL: whereSummary, params: paramsSummary } = buildWhereClause("s");
     const sqlTrenPortofolio_Summary = `
       SELECT 
@@ -423,11 +430,12 @@ const getGrafikTrenPortofolio = async (req, res) => {
             '%Y-%m-01'
           ) AS bulan_date,
           SUM(s.NOA) AS NoA,
-          SUM(CAST(REPLACE(REPLACE(REPLACE(s.OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS OS
-      FROM SummaryMonthly s
+          SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.OS, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS OS
+      FROM Summary_Realtime_ULaMM s
       ${whereSummary}
       GROUP BY bulan_label, bulan_date
-      ORDER BY bulan_date;
+      ORDER BY bulan_date
+      LIMIT 12;
     `;
 
     // Buat SQL dan params untuk Grafik Live tapi dari Summary_Realtime_ULaMM
@@ -452,12 +460,13 @@ const getGrafikTrenPortofolio = async (req, res) => {
             ),
             '%Y-%m-01'
           ) AS bulan_date,
-          SUM(CAST(REPLACE(REPLACE(REPLACE(s.NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS NoaLending,
-          SUM(CAST(REPLACE(REPLACE(REPLACE(s.NetLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS NetLending
+          SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NoaLending, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS NoaLending,
+          SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NetLending, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS NetLending
       FROM \`For Grafik Live ULaMM\` s
       ${whereRealtime}
       GROUP BY bulan_label, bulan_date
-      ORDER BY bulan_date;
+      ORDER BY bulan_date
+      LIMIT 12;
     `;
 
     // Buat SQL dan params untuk Top5 NoA
@@ -473,7 +482,7 @@ const getGrafikTrenPortofolio = async (req, res) => {
 
     // Buat SQL dan params untuk Top5 OS
     const sqlTop5OS = `
-      SELECT s.Cabang, SUM(CAST(REPLACE(REPLACE(REPLACE(s.OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS total_os
+      SELECT s.Cabang, SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.OS, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS total_os
       FROM Summary_Realtime_ULaMM s
       ${whereTop5}
       GROUP BY s.Cabang
