@@ -1,6 +1,8 @@
 // backend/controllers/users.controller.js
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
+const { sanitizeInput, sanitizeEmail, sanitizeAlphanumeric } = require('../utils/sanitize');
+const { validatePasswordStrength } = require('../utils/passwordValidator');
 
 /**
  * Get all users (Admin only)
@@ -73,13 +75,30 @@ const getUserById = async (req, res) => {
  */
 const createUser = async (req, res) => {
   try {
-    const { username, email, password, role, level, cabang_id, unit_id } = req.body;
+    // Sanitize inputs
+    const username = sanitizeAlphanumeric(req.body.username);
+    const email = sanitizeEmail(req.body.email);
+    const password = sanitizeInput(req.body.password, 'string');
+    const role = sanitizeAlphanumeric(req.body.role);
+    const level = sanitizeAlphanumeric(req.body.level);
+    const cabang_id = sanitizeAlphanumeric(req.body.cabang_id);
+    const unit_id = sanitizeAlphanumeric(req.body.unit_id);
 
     // Validation
     if (!username || !email || !password || !role || !level) {
       return res.status(400).json({
         success: false,
         message: 'Username, email, password, role, dan level wajib diisi'
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password tidak memenuhi persyaratan',
+        errors: passwordValidation.errors
       });
     }
 
@@ -187,7 +206,16 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, email, password, role, level, cabang_id, unit_id, is_active } = req.body;
+    
+    // Sanitize inputs
+    const username = req.body.username ? sanitizeAlphanumeric(req.body.username) : null;
+    const email = req.body.email ? sanitizeEmail(req.body.email) : null;
+    const password = req.body.password ? sanitizeInput(req.body.password, 'string') : null;
+    const role = req.body.role ? sanitizeAlphanumeric(req.body.role) : null;
+    const level = req.body.level ? sanitizeAlphanumeric(req.body.level) : null;
+    const cabang_id = req.body.cabang_id ? sanitizeAlphanumeric(req.body.cabang_id) : null;
+    const unit_id = req.body.unit_id ? sanitizeAlphanumeric(req.body.unit_id) : null;
+    const is_active = req.body.is_active !== undefined ? req.body.is_active : null;
 
     // Check if user exists
     const [existingUsers] = await db.promise().query(
@@ -244,6 +272,16 @@ const updateUser = async (req, res) => {
     }
 
     if (password) {
+      // Validate password strength
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password tidak memenuhi persyaratan',
+          errors: passwordValidation.errors
+        });
+      }
+      
       const password_hash = await bcrypt.hash(password, 10);
       updates.push('password_hash = ?');
       params.push(password_hash);

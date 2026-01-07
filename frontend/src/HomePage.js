@@ -104,7 +104,6 @@ const HomePage = ({ selectedCabang = "", selectedUnit = "" }) => {
         });
 
         const data = res.data;
-        console.log("[SUCCESS] Summary data:", data);
         setSummary({
         // Ambil langsung dari backend (bukan penjumlahan manual)
         noa_konsolidasi: data.noa_konsolidasi || 0,
@@ -139,9 +138,6 @@ const HomePage = ({ selectedCabang = "", selectedUnit = "" }) => {
 
     fetchSummary();
   }, [selectedCabang, selectedUnit]);
-
-const format = (v) =>
-  typeof v === "number" ? v.toLocaleString("id-ID") : v || "-";
 
 const formatNumber = (value, isCurrency = false) => {
   if (value === null || value === undefined || isNaN(value)) return "-";

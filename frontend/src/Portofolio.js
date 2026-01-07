@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { dataAPI } from "./services/api";
 import "./index.css";
-import { LineChart, LabelList,  XAxis, YAxis,  CartesianGrid,  Line, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, XAxis, YAxis, CartesianGrid, Line, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CardGroup = ({ title, items, col = 2 }) => (
   <div className="w-full bg-gradient-to-br from-white via-[#f0f0f0] to-gray-200 border border-gray-300 rounded-xl p-[1px] shadow">

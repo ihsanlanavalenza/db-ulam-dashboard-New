@@ -1,8 +1,12 @@
 // backend/utils/jwtHelper.js
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-here';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET must be defined in environment variables');
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 /**

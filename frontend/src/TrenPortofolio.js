@@ -1,5 +1,5 @@
 // src/TrenPortofolio.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -26,11 +26,9 @@ const TrenPortofolio = ({ selectedCabang, selectedUnit }) => {
   const [dataTop5NoA, setDataTop5NoA] = useState([]);
   const [dataTop5OS, setDataTop5OS] = useState([]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const cabang = selectedCabang || "All";
     const unit = selectedUnit || "All";
-
-    console.log("📤 Mengirim filter ke backend:", cabang, unit);
 
     try {
       const res = await axios.get("http://localhost:3001/api/grafik-tren-portofolio", {
@@ -76,11 +74,11 @@ const TrenPortofolio = ({ selectedCabang, selectedUnit }) => {
     } catch (err) {
       console.error("[ERROR] Error fetching grafik tren portofolio:", err);
     }
-  };
+  }, [selectedCabang, selectedUnit]);
 
   useEffect(() => {
     fetchData();
-  }, [selectedCabang, selectedUnit]);
+  }, [selectedCabang, selectedUnit, fetchData]);
 
   const formatNumber = (value, isCurrency = false) => {
     if (value === null || value === undefined || isNaN(value)) return "-";

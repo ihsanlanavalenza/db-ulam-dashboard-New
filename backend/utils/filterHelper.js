@@ -1,4 +1,5 @@
 // backend/utils/filterHelper.js
+const { escapeLikeWildcards } = require('./sanitize');
 
 /**
  * Build WHERE clause and parameters based on user level and query params
@@ -21,11 +22,11 @@ const buildWhereClause = (req, options = {}) => {
   if (userFilter.unit_id) {
     // Unit level: filter by specific unit
     whereClauses.push(`LOWER(${unitColumn}) LIKE ?`);
-    params.push(`%${userFilter.unit_id.toLowerCase()}%`);
+    params.push(`%${escapeLikeWildcards(userFilter.unit_id.toLowerCase())}%`);
   } else if (userFilter.cabang_id) {
     // Cabang level: filter by specific cabang
     whereClauses.push(`LOWER(${cabangColumn}) LIKE ?`);
-    params.push(`%${userFilter.cabang_id.toLowerCase()}%`);
+    params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
   }
   // Pusat level: no filter (can see all data)
   
@@ -37,11 +38,11 @@ const buildWhereClause = (req, options = {}) => {
   if (!userFilter.unit_id) {
     if (unit) {
       whereClauses.push(`LOWER(${unitColumn}) LIKE ?`);
-      params.push(`%${unit.toLowerCase()}%`);
+      params.push(`%${escapeLikeWildcards(unit.toLowerCase())}%`);
     } else if (cabang && !userFilter.cabang_id) {
       // Only allow cabang filter if not already filtered by user level
       whereClauses.push(`LOWER(${cabangColumn}) LIKE ?`);
-      params.push(`%${cabang.toLowerCase()}%`);
+      params.push(`%${escapeLikeWildcards(cabang.toLowerCase())}%`);
     }
   }
   
@@ -80,14 +81,14 @@ const getUserLevelFilters = (req) => {
     // Unit level: only show their unit (and their cabang for cabang dropdown)
     cabangFilter = 'WHERE LOWER(NAMA_CABANG) LIKE ?';
     unitFilter = 'WHERE LOWER(NAMA_UNIT) LIKE ?';
-    params.push(`%${userFilter.cabang_id.toLowerCase()}%`);
-    params.push(`%${userFilter.unit_id.toLowerCase()}%`);
+    params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
+    params.push(`%${escapeLikeWildcards(userFilter.unit_id.toLowerCase())}%`);
   } else if (userFilter.cabang_id) {
     // Cabang level: only show units in their cabang
     cabangFilter = 'WHERE LOWER(NAMA_CABANG) LIKE ?';
     unitFilter = 'WHERE LOWER(NAMA_CABANG) LIKE ?';
-    params.push(`%${userFilter.cabang_id.toLowerCase()}%`);
-    params.push(`%${userFilter.cabang_id.toLowerCase()}%`);
+    params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
+    params.push(`%${escapeLikeWildcards(userFilter.cabang_id.toLowerCase())}%`);
   }
   // Pusat level: no filter
   

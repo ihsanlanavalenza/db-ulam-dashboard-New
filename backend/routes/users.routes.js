@@ -3,9 +3,19 @@ const express = require('express');
 const router = express.Router();
 const usersController = require('../controllers/users.controller');
 const { requireAuth, requireRole } = require('../middleware/auth.middleware');
+const rateLimit = require('express-rate-limit');
 
-// All user management routes require authentication and admin role
-const adminOnly = [requireAuth, requireRole(['admin'])];
+// Rate limiter for user management - 50 requests per 15 minutes
+const userManagementLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { success: false, message: 'Terlalu banyak request. Silakan coba lagi dalam 15 menit.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// All user management routes require authentication, admin role, and rate limiting
+const adminOnly = [userManagementLimiter, requireAuth, requireRole(['admin'])];
 
 /**
  * @route   GET /api/users

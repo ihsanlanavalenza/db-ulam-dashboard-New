@@ -89,10 +89,51 @@ const UserManagement = () => {
         return;
       }
 
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setFormError('Format email tidak valid');
+        setSubmitting(false);
+        return;
+      }
+
       if (modalMode === 'create' && !formData.password) {
         setFormError('Password wajib diisi');
         setSubmitting(false);
         return;
+      }
+
+      // Password strength validation
+      if (formData.password) {
+        if (formData.password.length < 8) {
+          setFormError('Password minimal 8 karakter');
+          setSubmitting(false);
+          return;
+        }
+        
+        if (!/[A-Z]/.test(formData.password)) {
+          setFormError('Password harus mengandung minimal 1 huruf besar');
+          setSubmitting(false);
+          return;
+        }
+        
+        if (!/[a-z]/.test(formData.password)) {
+          setFormError('Password harus mengandung minimal 1 huruf kecil');
+          setSubmitting(false);
+          return;
+        }
+        
+        if (!/[0-9]/.test(formData.password)) {
+          setFormError('Password harus mengandung minimal 1 angka');
+          setSubmitting(false);
+          return;
+        }
+        
+        if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(formData.password)) {
+          setFormError('Password harus mengandung minimal 1 karakter khusus (!@#$%^&* dll)');
+          setSubmitting(false);
+          return;
+        }
       }
 
       // Prepare data

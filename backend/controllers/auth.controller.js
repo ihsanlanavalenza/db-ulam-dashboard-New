@@ -2,6 +2,7 @@
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { generateAccessToken, generateRefreshToken } = require('../utils/jwtHelper');
+const { sanitizeInput, sanitizeAlphanumeric } = require('../utils/sanitize');
 const crypto = require('crypto');
 
 /**
@@ -9,7 +10,9 @@ const crypto = require('crypto');
  */
 const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    // Sanitize inputs
+    const username = sanitizeAlphanumeric(req.body.username);
+    const password = sanitizeInput(req.body.password, 'string');
 
     // Validation
     if (!username || !password) {

@@ -3,9 +3,19 @@ const router = express.Router();
 const dataController = require('../controllers/data.controller');
 const { validateQueryParams, handleValidationErrors } = require('../middleware/validation');
 const { requireAuth, applyDataFilter } = require('../middleware/auth.middleware');
+const rateLimit = require('express-rate-limit');
 
-// Apply validation and authentication to all routes
-const validateAndHandle = [requireAuth, applyDataFilter, validateQueryParams, handleValidationErrors];
+// Rate limiter for data endpoints - 100 requests per 15 minutes
+const dataLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests
+  message: { success: false, message: 'Terlalu banyak request. Silakan coba lagi dalam 15 menit.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply validation, authentication, and rate limiting to all routes
+const validateAndHandle = [dataLimiter, requireAuth, applyDataFilter, validateQueryParams, handleValidationErrors];
 
 // Protected routes - require authentication and apply data filtering based on user level
 router.get('/branch-locations', validateAndHandle, dataController.getBranchLocations);

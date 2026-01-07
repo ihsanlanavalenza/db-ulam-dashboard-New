@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react
 import Select from "react-select";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Icon from "./components/Icon";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -20,16 +21,18 @@ import { dataAPI } from "./services/api";
 
 const App = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/*" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

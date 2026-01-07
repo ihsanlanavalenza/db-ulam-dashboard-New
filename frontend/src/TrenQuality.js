@@ -143,9 +143,6 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         const res = await dataAPI.getTrenQualityGrafik(params);
         const data = res.data || {};
 
-        // debug kalau data kosong
-        console.log("[DATA] API response grafik:", data);
-
         const trend = (data.trend || []).map((d) => ({
           periode: d.periode,
           periodeKey: d.periode_date ? d.periode_date.slice(0, 7) : d.periode,

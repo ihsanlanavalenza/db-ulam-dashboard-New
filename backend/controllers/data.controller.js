@@ -65,18 +65,18 @@ const getSummary = (req, res) => {
   SELECT 
     -- Konsolidasi
     (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS noa_konsolidasi,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS os_konsolidasi,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS os_konsolidasi,
 
     -- ULaMM
     (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS noa_ulamm,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS os_ulamm,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS os_ulamm,
 
     -- KM200
     (SELECT SUM(NOA) FROM Summary_Realtime_KM200 ${whereCondition}) AS noa_km200,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_KM200 ${whereCondition}) AS os_km200,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_KM200 ${whereCondition}) AS os_km200,
 
     -- Penyaluran bulan & tahun ini
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NetLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS net_lending_bulan_ini,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS net_lending_bulan_ini,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS noa_lending_bulan_ini,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NetLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS net_lending_tahun_ini,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS noa_lending_tahun_ini,
@@ -101,26 +101,26 @@ const getSummary = (req, res) => {
     (SELECT COUNT(*) FROM calender WHERE \`Index\` = 'Hari Kerja') AS sisa_hari_kerja,
 
     -- KPI OS per NOA
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS avg_os_per_nasabah,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OSPar, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS ospar_per_noapar,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_LAR, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS oslar_per_noalar,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OSNPL, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS osnpl_per_noanpl,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS avg_os_per_nasabah,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OSPar,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS ospar_per_noapar,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS_LAR,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS oslar_per_noalar,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OSNPL,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS osnpl_per_noanpl,
 
     -- KPI NOA & OS
     (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_noa,
     (SELECT SUM(NOA_3R_Covid) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_noa_per_aom,
     (SELECT SUM(NOA_3R_NonCovid) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_noa_per_unit,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_3R_Covid, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os_per_aom,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_3R_NonCovid, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os_per_unit,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS_3R_Covid,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os_per_aom,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS_3R_NonCovid,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os_per_unit,
 
     -- CARD portofolio
     (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS card_noa,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM Summary_Realtime_ULaMM ${whereCondition}) AS card_os,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_bulan_ini,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NetLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_plafond_bulan_ini,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_tahun_ini,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NetLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_plafond_tahun_ini,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS card_os,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NoaLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_bulan_ini,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_plafond_bulan_ini,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NoaLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_tahun_ini,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_plafond_tahun_ini,
 
     -- CARD TREN QUALITY
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OSPar, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
@@ -193,14 +193,16 @@ const getSummary = (req, res) => {
   const totalPlaceholders = (query.match(/\?/g) || []).length;
 
   if (baseParams.length > 0 && totalPlaceholders > 0) {
-    while (params.length < totalPlaceholders) {
+    // Calculate how many times we need to repeat the params
+    const repeatCount = Math.ceil(totalPlaceholders / baseParams.length);
+    for (let i = 0; i < repeatCount; i++) {
       params.push(...baseParams);
     }
+    // Trim to exact length needed
     params.length = totalPlaceholders;
   }
 
-  console.log("Final WHERE:", whereCondition);
-  console.log("Final PARAMS length:", params.length);
+  // Debug logs removed for production
 
   db.query(query, params, (err, results) => {
     if (err) {
@@ -210,40 +212,6 @@ const getSummary = (req, res) => {
      res.json(results[0]);
   });
 };
-
-// ===========================  
-// MSSQL helper: Get Productvity Data (example gunakan mssql)
-// ===========================
-const config = {
-  user: 'sa',
-  password: 'password',
-  server: 'localhost',
-  database: 'NamaDatabase',
-  options: {
-    encrypt: true,
-    trustServerCertificate: true
-  }
-};
-
-async function getProductivityData(req, res) {
-  try {
-    const pool = await sql.connect(config);
-
-    // Query pertama
-    const resultAOM = await pool.request().query('SELECT * FROM aom_table');
-
-    // Query kedua
-    const resultUnit = await pool.request().query('SELECT * FROM unit_table');
-
-    res.json({
-      aom: resultAOM.recordset,
-      unit: resultUnit.recordset
-    });
-  } catch (err) {
-    console.error('❌ Error ambil grafik productivity (MSSQL):', err.message, err.stack);
-    res.status(500).send(err.message);
-  }
-}
 
 // ===========================
 // Endpoint: Get Grafik Productivity (MySQL)
@@ -379,7 +347,6 @@ const getGrafikTrenPortofolio = async (req, res) => {
     }
     
     const queryAsync = util.promisify(db.query).bind(db);
-    console.log("Filter diterima backend:", { cabang, unit });
 
     // Fungsi bantu untuk buat kondisi WHERE dan params dinamis
     function buildWhereClause(tableAlias = "s") {
