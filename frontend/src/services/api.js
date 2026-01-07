@@ -72,6 +72,14 @@ export const dataAPI = {
   getGrafikJam: (params) => api.get('/grafik-jam', { params }),
   getGrafikWriteoff: (params) => api.get('/grafik-writeoff', { params }),
   getBranchLocations: (params) => api.get('/branch-locations', { params }),
+  getDataForExport: (tableName, params) => api.get(`/export/${tableName}`, { params }),
+};
+
+// Data Management APIs
+export const dataManagementAPI = {
+  getTransactions: (params) => api.get('/data-management/transactions', { params }),
+  createTransaction: (data) => api.post('/data-management/transactions', data),
+  deleteTransaction: (id) => api.delete(`/data-management/transactions/${id}`),
 };
 
 export default api;

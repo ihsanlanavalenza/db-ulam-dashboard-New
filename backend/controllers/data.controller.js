@@ -552,7 +552,7 @@ const getGrafikPortofolio = (req, res) => {
       ON YEAR(c.eom_date) = YEAR(STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'))
         AND MONTH(c.eom_date) = MONTH(STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'))
       AND (? = 'All' OR s.cabang = ?)
-      AND (? = 'All' OR s.namaunit = ?)
+      AND (? = 'All' OR s.NamaUnit = ?)
     WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
     GROUP BY c.eom_date
     ORDER BY c.eom_date;
@@ -635,9 +635,9 @@ const getGrafikTrenQuality = async (req, res) => {
       SELECT
         YEAR(STR_TO_DATE(f.tgl_tarik, '%d/%m/%Y %H:%i:%s')) AS y,
         MONTH(STR_TO_DATE(f.tgl_tarik, '%d/%m/%Y %H:%i:%s')) AS m,
-        f.Cabang,
+        f.cabang,
         f.NamaUnit,
-        f.OSPAR,
+        f.OSPar,
         f.OS_LAR,
         f.OSNPL
       FROM \`For Grafik Live ULaMM\` f
@@ -652,7 +652,7 @@ const getGrafikTrenQuality = async (req, res) => {
     LEFT JOIN src s
       ON YEAR(c.eom_date) = s.y
       AND MONTH(c.eom_date) = s.m
-      AND (? = 'All' OR LOWER(s.Cabang) = LOWER(?))
+      AND (? = 'All' OR LOWER(s.cabang) = LOWER(?))
       AND (? = 'All' OR LOWER(s.NamaUnit) = LOWER(?))
     WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
     GROUP BY c.eom_date
@@ -662,13 +662,13 @@ const getGrafikTrenQuality = async (req, res) => {
   // 🔹 2a) Top 5 PAR (langsung dari tabel utama)
   const queryTop5PAR = `
     SELECT 
-      f.Cabang AS ID_Cabang,
-      f.Cabang AS Nama_Cabang,
-      SUM(f.OSPAR) AS OSPAR
+      f.cabang AS ID_Cabang,
+      f.cabang AS Nama_Cabang,
+      SUM(f.OSPar) AS OSPAR
     FROM \`For Grafik Live ULaMM\` f
-    WHERE (? = 'All' OR LOWER(f.Cabang) = LOWER(?))
+    WHERE (? = 'All' OR LOWER(f.cabang) = LOWER(?))
       AND (? = 'All' OR LOWER(f.NamaUnit) = LOWER(?))
-    GROUP BY f.Cabang
+    GROUP BY f.cabang
     ORDER BY OSPAR DESC
     LIMIT 5;
   `;
@@ -676,13 +676,13 @@ const getGrafikTrenQuality = async (req, res) => {
   // 🔹 2b) Top 5 LAR
   const queryTop5LAR = `
     SELECT 
-      f.Cabang AS ID_Cabang,
-      f.Cabang AS Nama_Cabang,
+      f.cabang AS ID_Cabang,
+      f.cabang AS Nama_Cabang,
       SUM(f.OS_LAR) AS OSLAR
     FROM \`For Grafik Live ULaMM\` f
-    WHERE (? = 'All' OR LOWER(f.Cabang) = LOWER(?))
+    WHERE (? = 'All' OR LOWER(f.cabang) = LOWER(?))
       AND (? = 'All' OR LOWER(f.NamaUnit) = LOWER(?))
-    GROUP BY f.Cabang
+    GROUP BY f.cabang
     ORDER BY OSLAR DESC
     LIMIT 5;
   `;
@@ -690,13 +690,13 @@ const getGrafikTrenQuality = async (req, res) => {
   // 🔹 2c) Top 5 NPL
   const queryTop5NPL = `
     SELECT 
-      f.Cabang AS ID_Cabang,
-      f.Cabang AS Nama_Cabang,
+      f.cabang AS ID_Cabang,
+      f.cabang AS Nama_Cabang,
       SUM(f.OSNPL) AS OSNPL
     FROM \`For Grafik Live ULaMM\` f
-    WHERE (? = 'All' OR LOWER(f.Cabang) = LOWER(?))
+    WHERE (? = 'All' OR LOWER(f.cabang) = LOWER(?))
       AND (? = 'All' OR LOWER(f.NamaUnit) = LOWER(?))
-    GROUP BY f.Cabang
+    GROUP BY f.cabang
     ORDER BY OSNPL DESC
     LIMIT 5;
   `;

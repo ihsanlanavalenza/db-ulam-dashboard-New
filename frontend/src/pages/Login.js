@@ -48,6 +48,11 @@ const Login = () => {
       <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
+          <img 
+            src="/Logo-login.png" 
+            alt="Logo MBU" 
+            className="mx-auto mb-4 h-32 w-auto"
+          />
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard MBU</h1>
           <p className="text-gray-600">Monitoring ULaMM Portfolio</p>
         </div>

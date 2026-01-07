@@ -9,6 +9,8 @@ import Icon from "./components/Icon";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
+import DataManagement from "./pages/DataManagement";
+import DownloadData from "./pages/DownloadData";
 import HomePage from "./HomePage";
 import Productivity from "./Productivity";
 import TrenPortofolio from "./TrenPortofolio";
@@ -78,6 +80,7 @@ const MainLayout = () => {
   const adminNavItems = [
     { name: "Admin Dashboard", path: "/admin", icon: "template" },
     { name: "User Management", path: "/admin/users", icon: "users" },
+    { name: "Data Management", path: "/admin/data", icon: "database" },
   ];
 
   const handleLogout = () => {
@@ -169,6 +172,22 @@ const MainLayout = () => {
                 {sidebarOpen && <span className="font-medium">{item.name}</span>}
               </Link>
             ))}
+          </div>
+
+          {/* Download Section */}
+          <div className="mt-4">
+            <Link
+              to="/download"
+              className={`flex items-center gap-3 px-4 py-3 transition-all ${
+                currentPath === "/download"
+                  ? "bg-green-100 text-green-700 border-r-4 border-green-600"
+                  : "text-gray-700 hover:bg-green-50"
+              }`}
+              title={!sidebarOpen ? 'Download Data' : ''}
+            >
+              <Icon name="download" />
+              {sidebarOpen && <span className="font-medium">Download Data</span>}
+            </Link>
           </div>
         </nav>
 
@@ -300,6 +319,18 @@ const MainLayout = () => {
                   <UserManagement />
                 </ProtectedRoute>
               } 
+            />
+            <Route 
+              path="/admin/data" 
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <DataManagement />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/download" 
+              element={<DownloadData />} 
             />
             
             {/* Regular Routes */}

@@ -38,12 +38,20 @@ app.set("db", db);
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const dataRoutes = require('./routes/data.routes');
+const dataManagementRoutes = require('./routes/dataManagement.routes');
+const exportRoutes = require('./routes/export.routes');
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
 
 // User management routes (admin only)
 app.use('/api/users', usersRoutes);
+
+// Data management routes
+app.use('/api/data-management', dataManagementRoutes);
+
+// Export routes
+app.use('/api/export', exportRoutes);
 
 // Data routes
 app.use('/api', dataRoutes);
