@@ -19,7 +19,7 @@ import TrenQuality from "./TrenQuality";
 import Quality from "./Quality";
 import Product from "./Product";
 import WriteOff from "./WriteOff";
-import { dataAPI } from "./services/api";
+import { dataAPI, notificationAPI } from \"./services/api\";
 
 const App = () => {
   return (
@@ -51,11 +51,8 @@ const MainLayout = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: "Data productivity telah diperbarui", time: "5 menit lalu", read: false },
-    { id: 2, message: "Laporan bulanan tersedia", time: "1 jam lalu", read: false },
-    { id: 3, message: "Backup database berhasil", time: "2 jam lalu", read: true },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Fetch filters with authentication
@@ -71,6 +68,28 @@ const MainLayout = () => {
       .catch((err) => {
         console.error("Error fetching filter data:", err);
       });
+  }, []);
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await notificationAPI.getNotifications({ limit: 10 });
+        if (res.data.success) {
+          setNotifications(res.data.data.notifications);
+          setUnreadCount(res.data.data.unread_count);
+        }
+      } catch (err) {
+        console.error("Error fetching notifications:", err);
+      }
+    };
+
+    fetchNotifications();
+
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const navItems = [
@@ -95,7 +114,42 @@ const MainLayout = () => {
     window.location.href = '/login';
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const handleMarkAsRead = async (notifId) => {
+    try {
+      await notificationAPI.markAsRead(notifId);
+      setNotifications(notifications.map(n => 
+        n.id === notifId ? { ...n, is_read: true } : n
+      ));
+      setUnreadCount(Math.max(0, unreadCount - 1));
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationAPI.markAllAsRead();
+      setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+    }
+  };
+
+  const formatNotificationTime = (timestamp) => {
+    const now = new Date();
+    const notifTime = new Date(timestamp);
+    const diffMs = now - notifTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Baru saja';
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    if (diffDays < 7) return `${diffDays} hari lalu`;
+    return notifTime.toLocaleDateString('id-ID');
+  };
 
   return (
     <div className="font-sans bg-gray-100 min-h-screen flex">
@@ -233,25 +287,53 @@ const MainLayout = () => {
                 {/* Notification Dropdown */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
+                    <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                       <h3 className="text-gray-800 font-semibold text-sm">Notifikasi</h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllAsRead}
+                          className="text-xs text-[#0B66B2] hover:underline"
+                        >
+                          Tandai semua dibaca
+                        </button>
+                      )}
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      {notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
-                            !notif.read ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <p className="text-gray-800 text-sm">{notif.message}</p>
-                          <p className="text-gray-500 text-xs mt-1">{notif.time}</p>
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500 text-sm">
+                          Tidak ada notifikasi
                         </div>
-                      ))}
+                      ) : (
+                        notifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            onClick={() => !notif.is_read && handleMarkAsRead(notif.id)}
+                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer ${
+                              !notif.is_read ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-gray-800 text-sm font-medium">{notif.title}</p>
+                                <p className="text-gray-600 text-xs mt-1">{notif.message}</p>
+                                <p className="text-gray-400 text-xs mt-1">
+                                  {formatNotificationTime(notif.created_at)}
+                                </p>
+                              </div>
+                              {!notif.is_read && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                     <div className="p-3 text-center border-t border-gray-200">
-                      <button className="text-[#0B66B2] text-sm font-medium hover:underline">
-                        Lihat Semua
+                      <button 
+                        onClick={() => setShowNotifications(false)}
+                        className="text-[#0B66B2] text-sm font-medium hover:underline"
+                      >
+                        Tutup
                       </button>
                     </div>
                   </div>

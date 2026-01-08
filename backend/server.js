@@ -40,12 +40,16 @@ const usersRoutes = require('./routes/users.routes');
 const dataRoutes = require('./routes/data.routes');
 const dataManagementRoutes = require('./routes/dataManagement.routes');
 const exportRoutes = require('./routes/export.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 // Authentication routes
 app.use('/api/auth', authRoutes);
 
 // User management routes (admin only)
 app.use('/api/users', usersRoutes);
+
+// Notification routes
+app.use('/api/notifications', notificationRoutes);
 
 // Data management routes
 app.use('/api/data-management', dataManagementRoutes);

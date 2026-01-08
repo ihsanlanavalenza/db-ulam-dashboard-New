@@ -59,6 +59,14 @@ export const usersAPI = {
   toggleUserStatus: (id) => api.patch(`/users/${id}/toggle-status`),
 };
 
+// Notification APIs
+export const notificationAPI = {
+  getNotifications: (params) => api.get('/notifications', { params }),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/all/read'),
+  deleteNotification: (id) => api.delete(`/notifications/${id}`),
+};
+
 // Data APIs
 export const dataAPI = {
   getFilters: () => api.get('/filters'),
