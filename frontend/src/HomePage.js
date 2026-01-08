@@ -2,8 +2,9 @@
 import { dataAPI } from "./services/api";
 import "./index.css";
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 
 const CardGroup = ({ title, items, col = 2, className = "" }) => {
   const isCompactCard = ["Sisa Hari Kerja", "Unit", "Total Pendamping"].includes(title);
@@ -66,6 +67,16 @@ const FlyToFiltered = ({ data }) => {
   }, [data, map]);
   return null;
 };
+
+// Custom Marker Icon
+const customIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 const HomePage = ({ selectedCabang = "", selectedUnit = "" }) => {
   const [locations, setLocations] = useState([]);
@@ -225,25 +236,41 @@ return (
             />
             <FlyToFiltered data={locations} />
             {locations.map((loc, i) => (
-              <CircleMarker
-                key={i}
-                center={[loc.latitude, loc.longitude]}
-                radius={selectedCabang || selectedUnit ? 6 : 3}
-                pathOptions={{
-                  color: "#0B66B2",
-                  fillColor: "#66B2FF",
-                  fillOpacity: 0.9,
-                  weight: 1,
-                }}
-              >
-                <Popup className="text-sm">
-                  <div>
-                    <strong>{loc.nama_unit}</strong>
-                    <br />
-                    Cabang: {loc.nama_cabang}
+                <Marker
+                  key={i}
+                  position={[loc.latitude, loc.longitude]}
+                  icon={customIcon}
+                >
+                  <Popup>
+                    <div className="text-sm">
+                      <div className="font-bold text-base mb-2 text-[#0B66B2]">
+                        {loc.nama_unit}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-start">
+                          <span className="font-semibold mr-2">📍 Koordinat:</span>
+                        </div>
+                        <div className="ml-4 text-gray-600">
+                          <div>Latitude: {loc.latitude.toFixed(6)}</div>
+                          <div>Longitude: {loc.longitude.toFixed(6)}</div>
+                        </div>
+                        {loc.nama_cabang && (
+                        <div className="mt-2 pt-2 border-t">
+                          <span className="font-semibold">Cabang:</span> {loc.nama_cabang}
+                        </div>
+                      )}
+                      <a
+                        href={`https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block mt-2 px-3 py-1 bg-[#0B66B2] text-white text-xs rounded hover:bg-[#094d87] transition"
+                      >
+                        🗺️ Buka di Google Maps
+                      </a>
+                    </div>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             ))}
           </MapContainer>
         </div>

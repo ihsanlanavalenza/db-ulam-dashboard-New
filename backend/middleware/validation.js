@@ -6,23 +6,21 @@ const { query, validationResult } = require('express-validator');
  */
 const validateQueryParams = [
   query('cabang')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
     .isString()
     .isLength({ max: 100 })
-    .matches(/^[a-zA-Z0-9\s]+$/)
-    .withMessage('Cabang harus berupa alphanumeric'),
+    .withMessage('Cabang harus berupa string maksimal 100 karakter'),
   
   query('unit')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
     .isString()
     .isLength({ max: 100 })
-    .matches(/^[a-zA-Z0-9\s]+$/)
-    .withMessage('Unit harus berupa alphanumeric'),
+    .withMessage('Unit harus berupa string maksimal 100 karakter'),
   
   query('bulan')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .trim()
     .isString()
     .isLength({ max: 20 })
@@ -30,7 +28,7 @@ const validateQueryParams = [
     .withMessage('Bulan harus berupa alphanumeric'),
   
   query('tahun')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isInt({ min: 2000, max: 2100 })
     .withMessage('Tahun harus berupa integer antara 2000-2100'),
 ];

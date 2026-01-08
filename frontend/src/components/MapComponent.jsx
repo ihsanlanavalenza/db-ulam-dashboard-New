@@ -25,9 +25,37 @@ const MapComponent = ({ locations }) => {
         if (isNaN(lat) || isNaN(lon)) return null;
 
         return (
-            <Marker key={idx} position={[lat, lon]} icon={customIcon}>
-            <Popup>{loc.NAMA_UNIT}</Popup>
-            </Marker>
+          <Marker key={idx} position={[lat, lon]} icon={customIcon}>
+            <Popup>
+              <div className="text-sm">
+                <div className="font-bold text-base mb-2 text-[#0B66B2]">
+                  {loc.NAMA_UNIT}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-start">
+                    <span className="font-semibold mr-2">📍 Koordinat:</span>
+                  </div>
+                  <div className="ml-4 text-gray-600">
+                    <div>Latitude: {lat.toFixed(6)}</div>
+                    <div>Longitude: {lon.toFixed(6)}</div>
+                  </div>
+                  {loc.NAMA_CABANG && (
+                    <div className="mt-2 pt-2 border-t">
+                      <span className="font-semibold">Cabang:</span> {loc.NAMA_CABANG}
+                    </div>
+                  )}
+                  <a
+                    href={`https://www.google.com/maps?q=${lat},${lon}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 px-3 py-1 bg-[#0B66B2] text-white text-xs rounded hover:bg-[#094d87] transition"
+                  >
+                    🗺️ Buka di Google Maps
+                  </a>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
         );
         })}
     </MapContainer>

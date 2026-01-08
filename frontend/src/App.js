@@ -48,7 +48,14 @@ const MainLayout = () => {
 
   const [selectedCabang, setSelectedCabang] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, message: "Data productivity telah diperbarui", time: "5 menit lalu", read: false },
+    { id: 2, message: "Laporan bulanan tersedia", time: "1 jam lalu", read: false },
+    { id: 3, message: "Backup database berhasil", time: "2 jam lalu", read: true },
+  ]);
 
   useEffect(() => {
     // Fetch filters with authentication
@@ -88,42 +95,29 @@ const MainLayout = () => {
     window.location.href = '/login';
   };
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   return (
     <div className="font-sans bg-gray-100 min-h-screen flex">
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col fixed h-full z-30`}>
         {/* Logo & Toggle */}
-        <div className="bg-[#0B66B2] text-white p-4 flex items-center justify-between">
+        <div className="bg-[#ffffff] text-white p-5 flex items-center justify-between">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <img src="/logoputih.png" alt="PNM Logo" className="h-8" />
+              <img src="/logo-login.png" alt="PNM Logo" className="h-30" />
             </div>
           )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-white hover:bg-white/20 p-2 rounded transition"
+            className="text-[#0B66B2] hover:bg-gray-100 p-2 rounded transition"
           >
             {sidebarOpen ? <Icon name="chevron-left" className="w-5 h-5" /> : <Icon name="chevron-right" className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* User Info */}
-        <div className="p-4 border-b bg-gray-50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#0B66B2] rounded-full flex items-center justify-center text-white font-bold">
-              {user?.username?.charAt(0).toUpperCase()}
-            </div>
-            {sidebarOpen && (
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-gray-800 truncate">{user?.username}</div>
-                <div className="text-xs text-gray-500 uppercase">{user?.level}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto py-4 mt-4">
           {/* Admin Section */}
           {user?.role === 'admin' && (
             <div className="mb-4">
@@ -173,22 +167,6 @@ const MainLayout = () => {
               </Link>
             ))}
           </div>
-
-          {/* Download Section */}
-          <div className="mt-4">
-            <Link
-              to="/download"
-              className={`flex items-center gap-3 px-4 py-3 transition-all ${
-                currentPath === "/download"
-                  ? "bg-green-100 text-green-700 border-r-4 border-green-600"
-                  : "text-gray-700 hover:bg-green-50"
-              }`}
-              title={!sidebarOpen ? 'Download Data' : ''}
-            >
-              <Icon name="download" />
-              {sidebarOpen && <span className="font-medium">Download Data</span>}
-            </Link>
-          </div>
         </nav>
 
         {/* Logout Button */}
@@ -206,12 +184,96 @@ const MainLayout = () => {
 
       {/* Main Content */}
       <div className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
-        {/* Header */}
-        <header className="bg-[#0B66B2] text-white px-6 py-4 shadow-md">
-          <div className="text-xl font-semibold">
-            Monitoring Bisnis ULaMM
+        {/* Header - Fixed Position */}
+        <header className="bg-[#0B66B2] text-white px-6 py-4 shadow-md fixed top-0 right-0 left-0 z-20" style={{ marginLeft: sidebarOpen ? '256px' : '80px', transition: 'margin-left 0.3s' }}>
+          <div className="flex items-center justify-between">
+            {/* Left: Date Picker */}
+            <div className="flex items-center gap-2">
+              <Icon name="calendar" className="w-5 h-5" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-white/20 text-white px-3 py-2 rounded border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+
+            {/* Center: Title */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 text-xl font-semibold">
+              Monitoring Bisnis ULaMM
+            </div>
+
+            {/* Right: Action Icons & Profile */}
+            <div className="flex items-center gap-4">
+              {/* Export/Download Icon */}
+              <Link
+                to="/download"
+                className="relative hover:bg-white/20 p-2 rounded-full transition cursor-pointer"
+                title="Download Data"
+              >
+                <Icon name="download" className="w-6 h-6" />
+              </Link>
+
+              {/* Notification Icon */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative hover:bg-white/20 p-2 rounded-full transition"
+                  title="Notifikasi"
+                >
+                  <Icon name="bell" className="w-6 h-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="text-gray-800 font-semibold text-sm">Notifikasi</h3>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition ${
+                            !notif.read ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <p className="text-gray-800 text-sm">{notif.message}</p>
+                          <p className="text-gray-500 text-xs mt-1">{notif.time}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="p-3 text-center border-t border-gray-200">
+                      <button className="text-[#0B66B2] text-sm font-medium hover:underline">
+                        Lihat Semua
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Profile */}
+              <div className="flex items-center gap-3 pl-3 border-l border-white/30">
+                <div className="text-right">
+                  <div className="font-medium text-sm">{user?.username}</div>
+                  <div className="text-xs opacity-80 uppercase">{user?.level}</div>
+                </div>
+                <div className="w-10 h-10 bg-white text-[#0B66B2] rounded-full flex items-center justify-center font-bold">
+                  {user?.username?.charAt(0).toUpperCase()}
+                </div>
+              </div>
+            </div>
           </div>
         </header>
+
+        {/* Add spacing for fixed header */}
+        <div className="h-[72px]"></div>
 
         {/* Filter Dropdowns */}
         <div className="bg-white px-6 py-4 shadow-sm">
@@ -336,35 +398,35 @@ const MainLayout = () => {
             {/* Regular Routes */}
             <Route
               path="/"
-              element={<HomePage selectedCabang={selectedCabang} selectedUnit={selectedUnit} />}
+              element={<HomePage selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />}
             />
             <Route 
               path="/productivity" 
-              element={<Productivity selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<Productivity selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
             <Route 
               path="/tren-portofolio" 
-              element={<TrenPortofolio selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<TrenPortofolio selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
             <Route 
               path="/portofolio" 
-              element={<Portofolio selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<Portofolio selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
             <Route 
               path="/tren-quality" 
-              element={<TrenQuality selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<TrenQuality selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
             <Route 
               path="/quality" 
-              element={<Quality selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<Quality selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
             <Route 
               path="/product" 
-              element={<Product selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<Product selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
             <Route 
               path="/write-off" 
-              element={<WriteOff selectedCabang={selectedCabang} selectedUnit={selectedUnit} />} 
+              element={<WriteOff selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
           </Routes>
         </div>
