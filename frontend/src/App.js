@@ -19,7 +19,7 @@ import TrenQuality from "./TrenQuality";
 import Quality from "./Quality";
 import Product from "./Product";
 import WriteOff from "./WriteOff";
-import { dataAPI, notificationAPI } from \"./services/api\";
+import { dataAPI, notificationAPI } from "./services/api";
 
 const App = () => {
   return (
