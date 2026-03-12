@@ -109,7 +109,11 @@ const DataManagement = () => {
     if (!window.confirm('Yakin ingin menghapus data ini?')) return;
     
     try {
-      const id = `${row.Periode}|${row.Cabang}|${row.NamaUnit}`;
+      // Handle null/undefined NamaUnit safely
+      const periode = row.Periode || '';
+      const cabang = row.Cabang || '';
+      const namaUnit = row.NamaUnit || row.namaunit || row.Nama_Unit || '';
+      const id = `${periode}|${cabang}|${namaUnit}`;
       await dataManagementAPI.deleteTransaction(encodeURIComponent(id));
       alert('Data berhasil dihapus!');
       fetchTransactions();
