@@ -15,7 +15,7 @@ const getTransactions = async (req, res) => {
     
     // Apply filters
     if (cabang && cabang !== 'All') {
-      whereConditions.push('cabang = ?');
+      whereConditions.push('Cabang = ?');
       params.push(cabang);
     }
     
@@ -47,9 +47,12 @@ const getTransactions = async (req, res) => {
     const dataQuery = `
       SELECT 
         Periode,
-        cabang,
+        Cabang,
         NamaUnit,
         NOA,
+        NoaPar,
+        NoaNpl,
+        Noa_LAR,
         OS,
         OSPar,
         OSNPL,
@@ -79,6 +82,13 @@ const getTransactions = async (req, res) => {
   }
 };
 
+function formatPeriode(dateStr) {
+  const [date, time] = dateStr.split(" ");
+  const [day, month, year] = date.split("/");
+
+  return `${year}-${month}-${day} ${time}`;
+}
+
 /**
  * Create new transaction
  */
@@ -89,6 +99,9 @@ const createTransaction = async (req, res) => {
       cabang,
       namaUnit,
       noa,
+      noaPar,
+      noaNpl,
+      noaLar,
       os,
       osPar,
       osNpl,
@@ -103,6 +116,8 @@ const createTransaction = async (req, res) => {
       });
     }
     
+    const formattedPeriode = formatPeriode(periode);
+
     // Check user permissions
     const userFilter = req.dataFilter || {};
     if (userFilter.unit_id && namaUnit !== userFilter.unit_id) {
@@ -122,15 +137,18 @@ const createTransaction = async (req, res) => {
     // Insert data
     const query = `
       INSERT INTO summarymonthly 
-      (Periode, cabang, NamaUnit, NOA, OS, OSPar, OSNPL, OS_LAR)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (Periode, Cabang, NamaUnit, NOA, NoaPar, NoaNpl, Noa_LAR, OS, OSPar, OSNPL, OS_LAR)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     await db.promise().query(query, [
-      periode,
+      formattedPeriode,
       sanitizeInput(cabang),
       sanitizeInput(namaUnit),
       noa || 0,
+      noaPar || 0,
+      noaNpl || 0,
+      noaLar || 0,
       os || 0,
       osPar || 0,
       osNpl || 0,
@@ -156,7 +174,7 @@ const deleteTransaction = async (req, res) => {
     
     // Check if record exists
     const [existing] = await db.promise().query(
-      'SELECT * FROM summarymonthly WHERE Periode = ? AND cabang = ? AND NamaUnit = ? LIMIT 1',
+      'SELECT * FROM summarymonthly WHERE Periode = ? AND Cabang = ? AND NamaUnit = ? LIMIT 1',
       [id.split('|')[0], id.split('|')[1], id.split('|')[2]]
     );
     
@@ -177,7 +195,7 @@ const deleteTransaction = async (req, res) => {
     }
     
     await db.promise().query(
-      'DELETE FROM summarymonthly WHERE Periode = ? AND cabang = ? AND NamaUnit = ?',
+      'DELETE FROM summarymonthly WHERE Periode = ? AND Cabang = ? AND NamaUnit = ?',
       [id.split('|')[0], id.split('|')[1], id.split('|')[2]]
     );
     

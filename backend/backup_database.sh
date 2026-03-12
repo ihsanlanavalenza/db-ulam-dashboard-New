@@ -7,7 +7,7 @@
 
 # Configuration
 DB_USER="root"
-DB_PASS="ihsannovaf12"
+DB_PASS="Rehan2003."
 DB_NAME="db_ulaam"
 BACKUP_DIR="/Users/macbook/Documents/WORK /Raihan/dashboard-mbu/backend/backups"
 DATE=$(date +%Y%m%d_%H%M%S)

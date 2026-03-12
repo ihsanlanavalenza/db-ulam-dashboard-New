@@ -18,9 +18,8 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 
-// CORS middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3003'],
   credentials: true
 }));
 

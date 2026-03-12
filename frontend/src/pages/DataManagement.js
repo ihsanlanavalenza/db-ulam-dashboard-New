@@ -24,6 +24,9 @@ const DataManagement = () => {
     cabang: '',
     namaUnit: '',
     noa: '',
+    noaPar: '',
+    noaNpl: '',
+    noaLar: '',
     os: '',
     osPar: '',
     osNpl: '',
@@ -88,6 +91,9 @@ const DataManagement = () => {
         cabang: '',
         namaUnit: '',
         noa: '',
+        noaPar: '',
+        noaNpl: '',
+        noaLar: '',
         os: '',
         osPar: '',
         osNpl: '',
@@ -103,7 +109,7 @@ const DataManagement = () => {
     if (!window.confirm('Yakin ingin menghapus data ini?')) return;
     
     try {
-      const id = `${row.Periode}|${row.cabang}|${row.NamaUnit}`;
+      const id = `${row.Periode}|${row.Cabang}|${row.NamaUnit}`;
       await dataManagementAPI.deleteTransaction(encodeURIComponent(id));
       alert('Data berhasil dihapus!');
       fetchTransactions();
@@ -119,11 +125,10 @@ const DataManagement = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Data Management</h1>
-          <p className="text-gray-600">Kelola data transaksi summary monthly</p>
         </div>
 
         {/* Filter Section */}
@@ -203,6 +208,9 @@ const DataManagement = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Cabang</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Unit</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">NOA</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">NOA PAR</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">NOA NPL</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">NOA LAR</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">OS</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">OS PAR</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider">OS NPL</th>
@@ -220,7 +228,7 @@ const DataManagement = () => {
                   </tr>
                 ) : transactions.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="12" className="px-6 py-8 text-center text-gray-500">
                       Tidak ada data
                     </td>
                   </tr>
@@ -228,9 +236,12 @@ const DataManagement = () => {
                   transactions.map((row, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.Periode}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.cabang}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.Cabang}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.NamaUnit}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">{row.NOA || 0}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">{row.NoaPar || 0} </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900"> {row.NoaNpl || 0} </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900"> {row.Noa_LAR || 0} </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">{formatCurrency(row.OS)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">{formatCurrency(row.OSPar)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">{formatCurrency(row.OSNPL)}</td>
@@ -347,6 +358,45 @@ const DataManagement = () => {
                     type="number"
                     name="noa"
                     value={formData.noa}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    NOA PAR
+                  </label>
+                  <input
+                    type="number"
+                    name="noaPar"
+                    value={formData.noaPar}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    NOA NPL
+                  </label>
+                  <input
+                    type="number"
+                    name="noaNpl"
+                    value={formData.noaNpl}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    NOA LAR
+                  </label>
+                  <input
+                    type="number"
+                    name="noaLar"
+                    value={formData.noaLar}
                     onChange={handleFormChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />

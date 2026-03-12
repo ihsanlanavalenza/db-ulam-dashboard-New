@@ -128,7 +128,7 @@ JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
 # Server Configuration
-PORT=3001
+PORT=3002
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 ```

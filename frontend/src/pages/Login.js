@@ -30,8 +30,8 @@ const Login = () => {
         // Redirect based on role
         if (result.user.role === 'admin') {
           navigate('/admin');
-        } else {
-          navigate('/dashboard');
+        } else if (result.user.role === 'user') {
+          navigate('/');
         }
       } else {
         setError(result.message);

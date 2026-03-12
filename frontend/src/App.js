@@ -20,6 +20,7 @@ import Quality from "./Quality";
 import Product from "./Product";
 import WriteOff from "./WriteOff";
 import { dataAPI, notificationAPI } from "./services/api";
+import axios from 'axios';
 
 const App = () => {
   return (
@@ -109,8 +110,18 @@ const MainLayout = () => {
     { name: "Data Management", path: "/admin/data", icon: "database" },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/auth/logout');
+    } catch (error) {
+      console.log("Logout API error:", error);
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
     window.location.href = '/login';
   };
 
@@ -226,7 +237,7 @@ const MainLayout = () => {
         {/* Logout Button */}
         <div className="p-4 border-t">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition"
             title={!sidebarOpen ? 'Logout' : ''}
           >
@@ -234,6 +245,57 @@ const MainLayout = () => {
             {sidebarOpen && <span className="font-medium">Logout</span>}
           </button>
         </div>
+        {showLogoutModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          
+          <div className="bg-white rounded-2xl shadow-2xl w-[480px] p-10 text-center transform transition-all scale-100">
+
+            {/* Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 flex items-center justify-center rounded-full bg-red-100">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="w-8 h-8 text-red-600" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V4" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              Konfirmasi Logout
+            </h2>
+
+            {/* Description */}
+            <p className="text-gray-500 text-base mb-8">
+              Apakah Anda yakin ingin keluar dari dashboard?
+            </p>
+
+            {/* Buttons */}
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-200"
+              >
+                Batal
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 rounded-lg bg-[#0B66B2] text-white shadow-md hover:shadow-lg hover:opacity-95 transition duration-200"
+              >
+                Ya, Logout
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Main Content */}
