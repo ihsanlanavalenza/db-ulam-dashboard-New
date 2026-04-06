@@ -36,3 +36,11 @@
     transform: rotate(360deg);
   }
 }
+
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+.leaflet-pane {
+  z-index: 0 !important;
+}

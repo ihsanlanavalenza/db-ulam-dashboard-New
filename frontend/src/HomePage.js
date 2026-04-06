@@ -243,8 +243,8 @@ return (
           <MapContainer
             center={[-2.5489, 118.0149]}
             zoom={5}
-            style={{ height: "350px", width: "100%" }}
-            className="sm:!h-[450px] lg:!h-[500px]"
+            style={{ height: "350px", width: "100%", zIndex: 0 }}
+            className="sm:!h-[450px] lg:!h-[500px] z-0"
           >
             <TileLayer
               attribution='&copy; <a href="https://carto.com/">CARTO</a>'
