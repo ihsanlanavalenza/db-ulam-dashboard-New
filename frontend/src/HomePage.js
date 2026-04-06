@@ -107,47 +107,63 @@ const HomePage = ({ selectedCabang = "", selectedUnit = "" }) => {
   }, [selectedCabang, selectedUnit]);
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchAllSummary = async () => {
       try {
-        const res = await dataAPI.getSummary({
-          cabang: selectedCabang || undefined,
-          unit: selectedUnit || undefined,
+        const params = {};
+
+        if (selectedCabang !== "All") params.cabang = selectedCabang;
+        if (selectedUnit !== "All") params.unit = selectedUnit;
+
+        console.log("PARAMS HOMEPAGE:", params);
+
+        const [resSummary, resLending] = await Promise.all([
+          dataAPI.getSummary(params),
+          dataAPI.getSummaryLending(params),
+        ]);
+
+        console.log("PARAMS:", params);
+        console.log("RESPONSE SUMMARY:", resSummary.data);
+        console.log("RESPONSE LENDING:", resLending.data);
+
+        const data = resSummary.data || {};
+        const lending = resLending.data || {};
+
+        setSummary({
+          noa_konsolidasi: data.noa_konsolidasi || 0,
+          os_konsolidasi: data.os_konsolidasi || 0,
+          noa_ulamm: data.noa_ulamm || 0,
+          os_ulamm: data.os_ulamm || 0,
+          noa_km200: data.noa_km200 || 0,
+          os_km200: data.os_km200 || 0,
+
+          os_par: data.os_par || 0,
+          os_npl: data.os_npl || 0,
+          os_lar: data.os_lar || 0,
+          noa_par: data.noa_par || 0,
+          noa_npl: data.noa_npl || 0,
+          noa_lar: data.noa_lar || 0,
+
+          aom: data.aom || 0,
+          aom_pantas: data.aom_pantas || 0,
+          kam: data.kam || 0,
+          kuu: data.kuu || 0,
+          sisa_hari_kerja: data.sisa_hari_kerja || 0,
+          total_unit: data.total_unit || 0,
+          total_pendamping: data.total_pendamping || 0,
+
+          net_lending_bulan_ini: lending.net_lending_bulan_ini || 0,
+          noa_lending_bulan_ini: lending.noa_lending_bulan_ini || 0,
+          net_lending_tahun_ini: lending.net_lending_tahun_ini || 0,
+          noa_lending_tahun_ini: lending.noa_lending_tahun_ini || 0,
         });
 
-        const data = res.data;
-        setSummary({
-        // Ambil langsung dari backend (bukan penjumlahan manual)
-        noa_konsolidasi: data.noa_konsolidasi || 0,
-        os_konsolidasi: data.os_konsolidasi || 0,
-        noa_ulamm: data.noa_ulamm || 0,
-        os_ulamm: data.os_ulamm || 0,
-        noa_km200: data.noa_km200 || 0,
-        os_km200: data.os_km200 || 0,
-        net_lending_bulan_ini: data.net_lending_bulan_ini || 0,
-        noa_lending_bulan_ini: data.noa_lending_bulan_ini || 0,
-        net_lending_tahun_ini: data.net_lending_tahun_ini || 0,
-        noa_lending_tahun_ini: data.noa_lending_tahun_ini || 0,
-        os_par: data.os_par || 0,
-        os_npl: data.os_npl || 0,
-        os_lar: data.os_lar || 0,
-        noa_par: data.noa_par || 0,
-        noa_npl: data.noa_npl || 0,
-        noa_lar: data.noa_lar || 0,
-        aom: data.aom || 0,
-        aom_pantas: data.aom_pantas || 0,
-        kam: data.kam || 0,
-        kuu: data.kuu || 0,
-        sisa_hari_kerja: data.sisa_hari_kerja || 0,
-        total_unit: data.total_unit || 0,
-        total_pendamping: data.total_pendamping || 0,
-      });
       } catch (err) {
         console.error("[ERROR] Error fetching summary:", err);
-        setSummary(null);
+        setSummary({});
       }
     };
 
-    fetchSummary();
+    fetchAllSummary();
   }, [selectedCabang, selectedUnit]);
 
 const formatNumber = (value, isCurrency = false) => {
@@ -263,7 +279,8 @@ return (
                         href={`https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block mt-2 px-3 py-1 bg-[#0B66B2] text-white text-xs rounded hover:bg-[#094d87] transition"
+                        className="inline-block mt-2 px-3 py-1 bg-[#0B66B2] text-xs rounded hover:bg-[#094d87] transition"
+                        style={{ color: "white" }}
                       >
                         🗺️ Buka di Google Maps
                       </a>

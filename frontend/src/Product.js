@@ -66,42 +66,64 @@ const SectionGraph = ({ title, children }) => {
   );
 };
 
-// ===================== JamChart (untuk OS per rentang plafon) =====================
+// ===================== JamChart (untuk OS per rentang plafond) =====================
 const JamChart = ({ plafond, selectedCabang, selectedUnit }) => {
   const [data, setData] = useState([]);
 
-  // mapping nama field OS dari backend berdasarkan prop plafon
-  const getOsKey = (p) => {
-    if (p === "50") return "os_50jt";
-    if (p === "100") return "os_100jt";
-    if (p === "200") return "os_200jt";
-    if (p === "400") return "os_400jt";
-    return "os_gt400jt"; // "lebih"
+  // mapping field dari backend
+  const getKey = (p) => {
+    if (p === "50") return "plafond_50";
+    if (p === "100") return "plafond_100";
+    if (p === "200") return "plafond_200";
+    if (p === "400") return "plafond_400";
+    return "plafond_400plus";
   };
 
   useEffect(() => {
     const fetchJam = async () => {
       try {
-        const res = await dataAPI.getGrafikJam({
+        const res = await dataAPI.getGrafikProduct({
           cabang: selectedCabang !== "All" ? selectedCabang : undefined,
           unit: selectedUnit !== "All" ? selectedUnit : undefined,
         });
 
-        const raw = Array.isArray(res.data) ? res.data : [];
-        const key = getOsKey(plafond);
+        console.log("RES PRODUCT:", res.data);
 
-        // Pastikan jam 0-23 selalu ada
-        const filled = Array.from({ length: 24 }, (_, i) => {
-          const found = raw.find((d) => Number(d.jam) === i) || {};
-          const y = Number(found[key]) || 0;
-          return { jam: i, os: y };
+        const raw = Array.isArray(res.data) ? res.data : [];
+        const key = getKey(plafond);
+
+        // mapping data dari backend
+        const mapped = raw.map((d) => {
+          const date = new Date(d.tanggal);
+          const month = date.getMonth(); // 0-11
+
+          return {
+            month,
+            value: Number(d[key]) || 0,
+          };
         });
 
-        setData(filled);
+        // generate 12 bulan
+        const result = Array.from({ length: 12 }, (_, i) => {
+          const found = mapped.find((m) => m.month === i);
+
+          const date = new Date(2025, i, 1);
+
+          return {
+            month: i,
+            label: date.toLocaleDateString("id-ID", {
+              month: "short",
+              year: "2-digit",
+            }), // Jan 25
+            value: found ? found.value : 0,
+          };
+        });
+
+        setData(result);
+
       } catch (err) {
-        console.error("[ERROR] Error fetch grafik jam:", err);
-        // fallback kosong 0–23
-        setData(Array.from({ length: 24 }, (_, i) => ({ jam: i, os: 0 })));
+        console.error("[ERROR] Error fetch grafik product:", err);
+        setData([]);
       }
     };
 
@@ -112,13 +134,14 @@ const JamChart = ({ plafond, selectedCabang, selectedUnit }) => {
     <ResponsiveContainer width="100%" height={170}>
       <AreaChart data={data}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis
-          dataKey="jam"
-          tick={{ fontSize: 12 }}
-          ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]}
+
+        <XAxis dataKey="label"
+          style={{ fontSize: 12 }}
+          interval={1}
         />
+
         <YAxis
-          tick={{ fontSize: 10 }}
+          tick={{ fontSize: 12 }}
           tickFormatter={(val) =>
             val >= 1_000_000_000
               ? (val / 1_000_000_000).toFixed(1) + "B"
@@ -127,13 +150,21 @@ const JamChart = ({ plafond, selectedCabang, selectedUnit }) => {
               : val
           }
         />
+
         <Tooltip
           formatter={(value) =>
             new Intl.NumberFormat("id-ID").format(Number(value))
           }
-          labelFormatter={(label) => `Jam ${label}`}
+          labelFormatter={(label) => `Tanggal ${label}`}
         />
-        <Area type="monotone" dataKey="os" stroke="#0B66B2" fill="#0B66B2" />
+
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke="#0B66B2"
+          fill="#0B66B2"
+          fillOpacity={0.3}
+        />
       </AreaChart>
     </ResponsiveContainer>
   );
@@ -215,14 +246,14 @@ const Product = ({ selectedCabang = "All", selectedUnit = "All" }) => {
       <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="flex flex-col gap-4">
           <CardGroup
-            title="Plafond < 50jt"
+            title="Grafik Plafond < 50jt"
             col={2}
             items={[
               { label: "NoA", value: formatNumber(summary.plaf_50.noa) },
               { label: "OS", value: formatNumber(summary.plaf_50.os, true) },
             ]}
           />
-          <SectionGraph title="JAM < 50jt">
+          <SectionGraph title="Grafik Plafond < 50jt">
             <JamChart
               plafond="50"
               selectedCabang={selectedCabang}
@@ -232,14 +263,14 @@ const Product = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         </div>
         <div className="flex flex-col gap-4">
           <CardGroup
-            title="Plafond 51 - 100jt"
+            title="Grafik Plafond 51 - 100jt"
             col={2}
             items={[
               { label: "NoA", value: formatNumber(summary.plaf_100.noa) },
               { label: "OS", value: formatNumber(summary.plaf_100.os, true) },
             ]}
           />
-          <SectionGraph title="JAM 51 - 100jt">
+          <SectionGraph title="Grafik Plafond 51 - 100jt">
             <JamChart
               plafond="100"
               selectedCabang={selectedCabang}
@@ -253,14 +284,14 @@ const Product = ({ selectedCabang = "All", selectedUnit = "All" }) => {
       <div className="mb-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="flex flex-col gap-4">
           <CardGroup
-            title="Plafond 101 - 200jt"
+            title="Grafik Plafond 101 - 200jt"
             col={2}
             items={[
               { label: "NoA", value: formatNumber(summary.plaf_200.noa) },
               { label: "OS", value: formatNumber(summary.plaf_200.os, true) },
             ]}
           />
-          <SectionGraph title="JAM 101 - 200jt">
+          <SectionGraph title="Grafik Plafond 101 - 200jt">
             <JamChart
               plafond="200"
               selectedCabang={selectedCabang}
@@ -270,14 +301,14 @@ const Product = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         </div>
         <div className="flex flex-col gap-4">
           <CardGroup
-            title="Plafond 201 - 400jt"
+            title="Grafik Plafond 201 - 400jt"
             col={2}
             items={[
               { label: "NoA", value: formatNumber(summary.plaf_400.noa) },
               { label: "OS", value: formatNumber(summary.plaf_400.os, true) },
             ]}
           />
-          <SectionGraph title="JAM 201 - 400jt">
+          <SectionGraph title="Grafik Plafond 201 - 400jt">
             <JamChart
               plafond="400"
               selectedCabang={selectedCabang}
@@ -287,14 +318,14 @@ const Product = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         </div>
         <div className="flex flex-col gap-4">
           <CardGroup
-            title="Plafond > 400jt"
+            title="Grafik Plafond > 400jt"
             col={2}
             items={[
               { label: "NoA", value: formatNumber(summary.plaf_lebih.noa) },
               { label: "OS", value: formatNumber(summary.plaf_lebih.os, true) },
             ]}
           />
-          <SectionGraph title="JAM > 400jt">
+          <SectionGraph title="Grafik Plafond > 400jt">
             <JamChart
               plafond="lebih"
               selectedCabang={selectedCabang}

@@ -87,27 +87,25 @@ const dummySummary = {
   card_avg_hari_menunggak: 0,
 };
 
-const dummyData = {
-  lineChart: [
-    { bulan: "2025-01", total_noa: 0 },
-    { bulan: "2025-02", total_noa: 0 },
-    { bulan: "2025-03", total_noa: 0 },
-  ],
-  topCab: [
-    { CAB: "Cabang A", total_noa: 0 },
-    { CAB: "Cabang B", total_noa: 0 },
-    { CAB: "Cabang C", total_noa: 0 },
-  ],
-  topUnit: [
-    { nama_unit: "Unit A", total_noa: 0 },
-    { nama_unit: "Unit B", total_noa: 0 },
-    { nama_unit: "Unit C", total_noa: 0 },
-  ],
+// Generate 12 bulan
+const generate12Months = () => {
+  return Array.from({ length: 12 }, (_, i) => {
+    const month = String(i + 1).padStart(2, "0");
+    return {
+      bulan: `2025-${month}`,
+      total_noa: 0,
+    };
+  });
 };
 
 const WriteOff = ({ selectedCabang = "All", selectedUnit = "All" }) => {
   const [summaryWO, setSummaryWO] = useState(dummySummary);
-  const [grafikWO, setGrafikWO] = useState(dummyData);
+
+  const [grafikWO, setGrafikWO] = useState({
+    lineChart: generate12Months(),
+    topCab: [],
+    topUnit: [],
+  });
 
   // Fetch data paralel → overwrite dummy
   useEffect(() => {
@@ -123,7 +121,16 @@ const WriteOff = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         ]);
 
         setSummaryWO(resSummary.data || dummySummary);
-        setGrafikWO(resGrafik.data || dummyData);
+        // Grafik (aman fallback)
+        setGrafikWO(
+          resGrafik.data?.lineChart
+            ? resGrafik.data
+            : {
+                lineChart: generate12Months(),
+                topCab: [],
+                topUnit: [],
+              }
+        );
       } catch (err) {
         console.error("[ERROR] Error fetching WO data:", err);
       }
@@ -161,22 +168,36 @@ const WriteOff = ({ selectedCabang = "All", selectedUnit = "All" }) => {
                 ...item,
                 bulan_label: new Date(item.bulan + "-01").toLocaleString("id-ID", {
                   month: "short",
-                  year: "numeric",
+                  year: "2-digit",
                 }),
               }))}
               margin={{ top: 11, right: 30, bottom: 0, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="bulan_label" tick={{ fontSize: 12 }} interval={0} />
+              
+              <XAxis 
+                dataKey="bulan_label" 
+                tick={{ fontSize: 12 }} 
+                interval={0}
+                textAnchor="end"
+              />
+              
               <YAxis 
                 tickFormatter={(v) => formatNumber(v, true)}
                 style={{ fontSize: 12 }}
               />
+              
               <Tooltip
                 formatter={(v) => formatNumber(v, true)}
                 labelFormatter={(l) => `Bulan: ${l}`}
               />
-              <Line type="monotone" dataKey="total_noa" stroke="#0B66B2" strokeWidth={2} />
+
+              <Line 
+                type="monotone" 
+                dataKey="total_noa" 
+                stroke="#0B66B2" 
+                strokeWidth={2} 
+              />
             </LineChart>
           </ResponsiveContainer>
         </SectionGraph>

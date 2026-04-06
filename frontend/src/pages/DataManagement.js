@@ -33,6 +33,17 @@ const DataManagement = () => {
     osLar: ''
   });
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+
+  const [showConfirmAddModal, setShowConfirmAddModal] = useState(false);
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   // Fetch dropdown options
   useEffect(() => {
     dataAPI.getFilters()
@@ -79,13 +90,21 @@ const DataManagement = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
+    setShowConfirmAddModal(true);
+  };
+
+  const confirmAddData = async () => {
     try {
       await dataManagementAPI.createTransaction(formData);
-      alert('Data berhasil ditambahkan!');
+
+      setShowConfirmAddModal(false);
       setShowModal(false);
+
+      setSuccessMessage('Data berhasil ditambahkan!');
+      setShowSuccessModal(true);
+
       setFormData({
         periode: '',
         cabang: '',
@@ -99,26 +118,43 @@ const DataManagement = () => {
         osNpl: '',
         osLar: ''
       });
+
       fetchTransactions();
     } catch (error) {
-      alert('Gagal menambah data: ' + (error.response?.data?.message || error.message));
+      setShowConfirmAddModal(false);
+      setErrorMessage(error.response?.data?.message || 'Gagal menambah data');
+      setShowErrorModal(true);
     }
   };
 
-  const handleDelete = async (row) => {
-    if (!window.confirm('Yakin ingin menghapus data ini?')) return;
-    
+  const handleDelete = (row) => {
+    setSelectedRow(row);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      // Handle null/undefined NamaUnit safely
-      const periode = row.Periode || '';
-      const cabang = row.Cabang || '';
-      const namaUnit = row.NamaUnit || row.namaunit || row.Nama_Unit || '';
+      const periode = selectedRow.Periode || '';
+      const cabang = selectedRow.Cabang || '';
+      const namaUnit =
+        selectedRow.NamaUnit ||
+        selectedRow.namaunit ||
+        selectedRow.Nama_Unit ||
+        '';
+
       const id = `${periode}|${cabang}|${namaUnit}`;
+
       await dataManagementAPI.deleteTransaction(encodeURIComponent(id));
-      alert('Data berhasil dihapus!');
+
+      setShowDeleteModal(false);
+      setSuccessMessage('Data berhasil dihapus!');
+      setShowSuccessModal(true);
+
       fetchTransactions();
     } catch (error) {
-      alert('Gagal menghapus data: ' + (error.response?.data?.message || error.message));
+      setShowDeleteModal(false);
+      setErrorMessage(error.response?.data?.message || 'Gagal menghapus data');
+      setShowErrorModal(true);
     }
   };
 
@@ -471,17 +507,97 @@ const DataManagement = () => {
         </div>
       )}
 
-      {/* Audit Logs Section */}
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
-        <div className="flex justify-center mb-4">
-          <svg className="w-20 h-20 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+      {showConfirmAddModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-2xl p-8 w-[400px] text-center shadow-xl">
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              Konfirmasi Data
+            </h2>
+            <p className="text-gray-500 text-base mb-8">
+              Apakah Anda yakin ingin menambahkan data ini?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowConfirmAddModal(false)}
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmAddData}
+                className="px-6 py-2 rounded-lg bg-[#0B66B2] text-white shadow-md hover:opacity-95"
+              >
+                Ya, Simpan
+              </button>
+            </div>
+          </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-700 mb-2">Audit Logs</h2>
-        <p className="text-gray-500 mb-3">Lihat riwayat aktivitas</p>
-        <p className="text-gray-400 text-sm">Coming soon</p>
-      </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-2xl p-8 w-[400px] text-center shadow-xl">
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              Konfirmasi Hapus
+            </h2>
+            <p className="text-gray-500 text-base mb-8">
+              Apakah Anda yakin ingin menghapus data ini?
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-6 py-2 rounded-lg bg-red-500 text-white shadow-md hover:opacity-95"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-2xl p-8 w-[400px] text-center shadow-xl">
+            <h2 className="text-2xl font-bold text-green-600 mb-3">
+              Berhasil!
+            </h2>
+            <p className="text-gray-500 text-base mb-8">
+              {successMessage}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="px-6 py-2 rounded-lg bg-[#0B66B2] text-white"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <div className="bg-white rounded-2xl p-8 w-[400px] text-center shadow-xl">
+            <h2 className="text-2xl font-bold text-red-500 mb-3">
+              Gagal!
+            </h2>
+            <p className="text-gray-500 text-base mb-8">
+              {errorMessage}
+            </p>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="px-6 py-2 rounded-lg bg-[#0B66B2] text-white"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

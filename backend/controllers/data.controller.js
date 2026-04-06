@@ -2,7 +2,7 @@
 const db = require('../config/db');
 const { buildWhereClause, buildBranchWhereClause, getUserLevelFilters } = require('../utils/filterHelper');
 
-// ===========================
+/// ===========================
 // Endpoint: Get Peta Marker
 // ===========================
 const getBranchLocations = async (req, res) => {
@@ -12,7 +12,8 @@ const getBranchLocations = async (req, res) => {
     SELECT 
       COALESCE(Latitude, '0') AS LATITUDE, 
       COALESCE(Longitude, '0') AS LONGITUDE, 
-      Nama_Unit AS NAMA_UNIT
+      Nama_Unit AS NAMA_UNIT,
+      Nama_Cabang AS NAMA_CABANG
     FROM master_data_branch_new 
     ${whereClause || 'WHERE 1=1'}
     AND Latitude IS NOT NULL 
@@ -28,6 +29,8 @@ const getBranchLocations = async (req, res) => {
       ...loc,
       LATITUDE: parseFloat(loc.LATITUDE.replace(',', '.')),
       LONGITUDE: parseFloat(loc.LONGITUDE.replace(',', '.')),
+      nama_unit: loc.NAMA_UNIT,
+      nama_cabang: loc.NAMA_CABANG
     })).filter(loc => !isNaN(loc.LATITUDE) && !isNaN(loc.LONGITUDE));
 
     res.json(cleaned);
@@ -70,25 +73,17 @@ const getSummary = (req, res) => {
 
   const query = `
   SELECT 
-    -- Konsolidasi
-    (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS noa_konsolidasi,
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS os_konsolidasi,
 
-    -- ULaMM
+    -- CARD HOME
+    (SELECT SUM(NOA) FROM summarymonthly ${whereCondition}) AS noa_konsolidasi,
+    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM summarymonthly ${whereCondition}) AS os_konsolidasi,
+
     (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS noa_ulamm,
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS os_ulamm,
 
-    -- KM200
     (SELECT SUM(NOA) FROM Summary_Realtime_KM200 ${whereCondition}) AS noa_km200,
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_KM200 ${whereCondition}) AS os_km200,
 
-    -- Penyaluran bulan & tahun ini
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS net_lending_bulan_ini,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS noa_lending_bulan_ini,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NetLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS net_lending_tahun_ini,
-    (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaLending, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS noa_lending_tahun_ini,
-
-    -- PAR, NPL, LAR
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OSPar, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS os_par,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OSNPL, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS os_npl,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_LAR, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS os_lar,
@@ -96,24 +91,21 @@ const getSummary = (req, res) => {
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(NoaNPL, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS noa_npl,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(Noa_LAR, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS noa_lar,
 
-    -- SDM
     (SELECT SUM(AOM) FROM SummaryDailyWithoutSyariah ${whereCondition}) AS aom,
     (SELECT SUM(AOMPantas) FROM SummaryDailyWithoutSyariah ${whereCondition}) AS aom_pantas,
     (SELECT SUM(KAM) FROM SummaryDailyWithoutSyariah ${whereCondition}) AS kam,
     (SELECT SUM(KUU) FROM SummaryDailyWithoutSyariah ${whereCondition}) AS kuu,
     (SELECT COUNT(*) FROM SummaryDailyWithoutSyariah ${whereCondition}) AS total_pendamping,
 
-    -- Unit & Hari Kerja
     (SELECT COUNT(DISTINCT KodeUnit) FROM Summary_Realtime_ULaMM ${whereCondition}) AS total_unit,
     (SELECT COUNT(*) FROM calender WHERE \`Index\` = 'Hari Kerja') AS sisa_hari_kerja,
 
-    -- KPI OS per NOA
+    -- CARD PRODUCTIVITY
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS avg_os_per_nasabah,
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OSPar,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS ospar_per_noapar,
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS_LAR,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS oslar_per_noalar,
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OSNPL,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS osnpl_per_noanpl,
 
-    -- KPI NOA & OS
     (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_noa,
     (SELECT SUM(NOA_3R_Covid) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_noa_per_aom,
     (SELECT SUM(NOA_3R_NonCovid) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_noa_per_unit,
@@ -121,15 +113,7 @@ const getSummary = (req, res) => {
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS_3R_Covid,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os_per_aom,
     (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS_3R_NonCovid,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS kpi_os_per_unit,
 
-    -- CARD portofolio
-    (SELECT SUM(NOA) FROM Summary_Realtime_ULaMM ${whereCondition}) AS card_noa,
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(OS,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM Summary_Realtime_ULaMM ${whereCondition}) AS card_os,
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NoaLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_bulan_ini,
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_plafond_bulan_ini,
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NoaLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_tahun_ini,
-    (SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))), 0) FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_plafond_tahun_ini,
-
-    -- CARD TREN QUALITY
+    -- CARD TREN QUALITY & QUALITY
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OSPar, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
      FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_os_par,
 
@@ -168,31 +152,31 @@ const getSummary = (req, res) => {
         ) * 100
      FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_pct_npl,
 
-    -- CARD Plafond KM200
+    -- CARD PRODUCT
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(Noa_Plafond_Dibawah_50jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_noa_plafond_50jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_plafond_50jt,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_Plafond_Dibawah_50jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_os_plafond_50jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_os_plafond_50jt,
 
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(Noa_Plafond_51_Hingga_100jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_noa_plafond_51_100jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_plafond_51_100jt,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_Plafond_51_Hingga_100jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_os_plafond_51_100jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_os_plafond_51_100jt,
 
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(Noa_Plafond_101_Hingga_200jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_noa_plafond_101_200jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_plafond_101_200jt,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_Plafond_101_Hingga_200jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_os_plafond_101_200jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_os_plafond_101_200jt,
 
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(Noa_Plafond_201_Hingga_400jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_noa_plafond_201_400jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_plafond_201_400jt,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_Plafond_201_Hingga_400jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_os_plafond_201_400jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_os_plafond_201_400jt,
 
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(Noa_Plafond_Lebih_Dari_400jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_noa_plafond_lebih_400jt,
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_noa_plafond_lebih_400jt,
     (SELECT SUM(CAST(REPLACE(REPLACE(REPLACE(OS_Plafond_Lebih_Dari_400jt, 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) 
-     FROM \`For Grafil Live KM200\` ${whereCondition}) AS card_os_plafond_lebih_400jt
+     FROM \`For Grafik Live ULaMM\` ${whereCondition}) AS card_os_plafond_lebih_400jt
   `;
 
   // isi params sesuai jumlah tanda tanya
@@ -217,6 +201,68 @@ const getSummary = (req, res) => {
       return res.status(500).json({ error: err.message });
     }
      res.json(results[0]);
+  });
+};
+
+// ===========================
+// Endpoint: Get Summary Lending (Bulan ini & Tahun ini)
+// ===========================
+const getSummaryLending = (req, res) => {
+  const db = req.app.get("db");
+  const { whereClause, params } = buildWhereClause(req);
+
+  const filterBulanIni = `
+    AND MONTH(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) = 4
+    AND YEAR(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) = 2025
+  `;
+
+  const filterTahunIni = `
+    AND YEAR(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) = 2025
+  `;
+
+  // Adjust whereClause to avoid double WHERE
+  const adjustedWhere = whereClause ? whereClause.replace(/^WHERE\s+/, 'AND ') : '';
+
+  // Repeat params for each subquery (4 subqueries)
+  const allParams = [...params, ...params, ...params, ...params];
+
+  const query = `
+    SELECT 
+
+      -- BULAN INI
+      (
+        SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'),'Rp',''),'.',''),',','.') AS DECIMAL(20,2))),0)
+        FROM \`For Grafik Live ULaMM\`
+        WHERE 1=1 ${adjustedWhere} ${filterBulanIni}
+      ) AS net_lending_bulan_ini,
+
+      (
+        SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NoaLending,'0'),'Rp',''),'.',''),',','.') AS DECIMAL(20,2))),0)
+        FROM \`For Grafik Live ULaMM\`
+        WHERE 1=1 ${adjustedWhere} ${filterBulanIni}
+      ) AS noa_lending_bulan_ini,
+
+      -- TAHUN INI
+      (
+        SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NetLending,'0'),'Rp',''),'.',''),',','.') AS DECIMAL(20,2))),0)
+        FROM \`For Grafik Live ULaMM\`
+        WHERE 1=1 ${adjustedWhere} ${filterTahunIni}
+      ) AS net_lending_tahun_ini,
+
+      (
+        SELECT COALESCE(SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(NoaLending,'0'),'Rp',''),'.',''),',','.') AS DECIMAL(20,2))),0)
+        FROM \`For Grafik Live ULaMM\`
+        WHERE 1=1 ${adjustedWhere} ${filterTahunIni}
+      ) AS noa_lending_tahun_ini
+  `;
+
+  db.query(query, allParams, (err, results) => {
+    if (err) {
+      console.error("❌ Error summary lending:", err);
+      return res.status(500).json({ error: err.message });
+    }
+
+    res.json(results[0]);
   });
 };
 
@@ -267,8 +313,8 @@ const getGrafikProductivity = (req, res) => {
            )
          )
       AND (? = 'All' OR s.cabang = ?)
-      AND (? = 'All' OR s.namaunit = ?)
-    WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+      AND (? = 'All' OR s.NamaUnit = ?)
+    WHERE YEAR(c.eom_date) = 2025
     GROUP BY c.eom_date
     ORDER BY c.eom_date;
   `;
@@ -303,7 +349,7 @@ const getGrafikProductivity = (req, res) => {
         )
       AND (? = 'All' OR s.cabang = ?)
       AND (? = 'All' OR s.namaunit = ?)
-    WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    WHERE YEAR(c.eom_date) = 2025
     GROUP BY c.eom_date
     ORDER BY c.eom_date;
   `;
@@ -371,10 +417,10 @@ const getGrafikTrenPortofolio = async (req, res) => {
 
       whereClauses.push(`
         COALESCE(
-          STR_TO_DATE(${tableAlias}.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
-          STR_TO_DATE(${tableAlias}.tgl_tarik, '%d/%m/%Y'),
-          STR_TO_DATE(${tableAlias}.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
-          DATE(${tableAlias}.tgl_tarik)
+          STR_TO_DATE(${tableAlias}.Periode, '%d/%m/%Y %H:%i:%s'),
+          STR_TO_DATE(${tableAlias}.Periode, '%d/%m/%Y'),
+          STR_TO_DATE(${tableAlias}.Periode, '%Y-%m-%d %H:%i:%s'),
+          DATE(${tableAlias}.Periode)
         ) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
       `);
 
@@ -397,10 +443,10 @@ const getGrafikTrenPortofolio = async (req, res) => {
 
       whereClauses.push(`
         COALESCE(
-          STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
-          STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
-          STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
-          DATE(s.tgl_tarik)
+          STR_TO_DATE(s.Periode, '%d/%m/%Y %H:%i:%s'),
+          STR_TO_DATE(s.Periode, '%d/%m/%Y'),
+          STR_TO_DATE(s.Periode, '%Y-%m-%d %H:%i:%s'),
+          DATE(s.Periode)
         ) >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
       `);
 
@@ -411,62 +457,86 @@ const getGrafikTrenPortofolio = async (req, res) => {
     const { whereSQL: whereSummary, params: paramsSummary } = buildWhereClause("s");
     const sqlTrenPortofolio_Summary = `
       SELECT 
-          DATE_FORMAT(
-            COALESCE(
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
-              STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
-              DATE(s.tgl_tarik)
-            ),
-            '%b %y'
-          ) AS bulan_label,
-          DATE_FORMAT(
-            COALESCE(
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
-              STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
-              DATE(s.tgl_tarik)
-            ),
-            '%Y-%m-01'
-          ) AS bulan_date,
-          SUM(s.NOA) AS NoA,
-          SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.OS, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS OS
-      FROM Summary_Realtime_ULaMM s
-      ${whereSummary}
-      GROUP BY bulan_label, bulan_date
-      ORDER BY bulan_date
-      LIMIT 12;
+        DATE_FORMAT(c.bulan_date, '%b %y') AS bulan_label,
+        DATE_FORMAT(c.bulan_date, '%Y-%m-01') AS bulan_date,
+        COALESCE(SUM(
+          CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NOA, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))
+        ), 0) AS NoA,
+        COALESCE(SUM(
+          CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.OS, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))
+        ), 0) AS OS
+      FROM (
+        SELECT DATE_ADD('2025-01-01', INTERVAL n MONTH) AS bulan_date
+        FROM (
+          SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION
+          SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION
+          SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11
+        ) months
+      ) c
+      LEFT JOIN SummaryMonthly s
+        ON YEAR(
+          COALESCE(
+            STR_TO_DATE(s.Periode, '%d/%m/%Y %H:%i:%s'),
+            STR_TO_DATE(s.Periode, '%d/%m/%Y'),
+            STR_TO_DATE(s.Periode, '%Y-%m-%d %H:%i:%s'),
+            DATE(s.Periode)
+          )
+        ) = YEAR(c.bulan_date)
+        AND MONTH(
+          COALESCE(
+            STR_TO_DATE(s.Periode, '%d/%m/%Y %H:%i:%s'),
+            STR_TO_DATE(s.Periode, '%d/%m/%Y'),
+            STR_TO_DATE(s.Periode, '%Y-%m-%d %H:%i:%s'),
+            DATE(s.Periode)
+          )
+        ) = MONTH(c.bulan_date)
+        ${cabang !== "All" ? "AND s.Cabang = ?" : ""}
+        ${unit !== "All" ? "AND s.NamaUnit = ?" : ""}
+      GROUP BY c.bulan_date
+      ORDER BY c.bulan_date;
     `;
 
     // Buat SQL dan params untuk Grafik Live tapi dari Summary_Realtime_ULaMM
     const { whereSQL: whereRealtime, params: paramsRealtime } = buildWhereClauseRealtime();
     const sqlTrenPortofolio_FGL = `
       SELECT 
-          DATE_FORMAT(
-            COALESCE(
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
-              STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
-              DATE(s.tgl_tarik)
-            ),
-            '%b %y'
-          ) AS bulan_label,
-          DATE_FORMAT(
-            COALESCE(
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
-              STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
-              STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
-              DATE(s.tgl_tarik)
-            ),
-            '%Y-%m-01'
-          ) AS bulan_date,
-          SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NoaLending, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS NoaLending,
-          SUM(CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NetLending, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))) AS NetLending
-      FROM \`For Grafik Live ULaMM\` s
-      ${whereRealtime}
-      GROUP BY bulan_label, bulan_date
-      ORDER BY bulan_date
-      LIMIT 12;
+        DATE_FORMAT(c.bulan_date, '%b %y') AS bulan_label,
+        DATE_FORMAT(c.bulan_date, '%Y-%m-01') AS bulan_date,
+        COALESCE(SUM(
+          CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NoaLending, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))
+        ), 0) AS NoaLending,
+        COALESCE(SUM(
+          CAST(REPLACE(REPLACE(REPLACE(IFNULL(s.NetLending, '0'), 'Rp', ''), '.', ''), ',', '.') AS DECIMAL(20,2))
+        ), 0) AS NetLending
+      FROM (
+        SELECT DATE_ADD('2025-01-01', INTERVAL n MONTH) AS bulan_date
+        FROM (
+          SELECT 0 n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION
+          SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION
+          SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11
+        ) months
+      ) c
+      LEFT JOIN \`For Grafik Live ULaMM\` s
+        ON YEAR(
+          COALESCE(
+            STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
+            STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
+            STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
+            DATE(s.tgl_tarik)
+          )
+        ) = YEAR(c.bulan_date)
+        AND MONTH(
+          COALESCE(
+            STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'),
+            STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y'),
+            STR_TO_DATE(s.tgl_tarik, '%Y-%m-%d %H:%i:%s'),
+            DATE(s.tgl_tarik)
+          )
+        ) = MONTH(c.bulan_date)
+        ${cabang !== "All" ? "AND s.Cabang = ?" : ""}
+        ${unit !== "All" ? "AND s.NamaUnit = ?" : ""}
+      GROUP BY c.bulan_date
+      ORDER BY c.bulan_date;
     `;
 
     // Buat SQL dan params untuk Top5 NoA
@@ -536,7 +606,7 @@ const getGrafikPortofolio = (req, res) => {
   const paramsNoaOs = [cabang, cabang, unit, unit];
   const paramsPenyaluran = [cabang, cabang, unit, unit];
 
-  // ✅ Tren NoA & OS → Ganti tabel menjadi For Grafik Live ULaMM
+  // NoA & OS → Ganti tabel menjadi For Grafik Live ULaMM
   const queryNoaOs = `
     SELECT 
       DATE_FORMAT(c.eom_date, '%b %y') AS bulan_label,
@@ -553,12 +623,12 @@ const getGrafikPortofolio = (req, res) => {
         AND MONTH(c.eom_date) = MONTH(STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'))
       AND (? = 'All' OR s.cabang = ?)
       AND (? = 'All' OR s.NamaUnit = ?)
-    WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    WHERE YEAR(c.eom_date) = 2025
     GROUP BY c.eom_date
     ORDER BY c.eom_date;
   `;
 
-  // ✅ Tren Penyaluran
+  // Tren Penyaluran
   const queryPenyaluran = `
     SELECT 
       DATE_FORMAT(c.eom_date, '%b %y') AS bulan_label,
@@ -574,7 +644,7 @@ const getGrafikPortofolio = (req, res) => {
       AND MONTH(c.eom_date) = MONTH(STR_TO_DATE(s.tgl_tarik, '%d/%m/%Y %H:%i:%s'))
       AND (? = 'All' OR s.Cabang = ?)
       AND (? = 'All' OR s.NamaUnit = ?)
-    WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    WHERE YEAR(c.eom_date) = 2025
     GROUP BY c.eom_date
     ORDER BY c.eom_date;
   `;
@@ -654,7 +724,7 @@ const getGrafikTrenQuality = async (req, res) => {
       AND MONTH(c.eom_date) = s.m
       AND (? = 'All' OR LOWER(s.cabang) = LOWER(?))
       AND (? = 'All' OR LOWER(s.NamaUnit) = LOWER(?))
-    WHERE c.eom_date >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+    WHERE YEAR(c.eom_date) = 2025
     GROUP BY c.eom_date
     ORDER BY c.eom_date;
   `;
@@ -701,7 +771,7 @@ const getGrafikTrenQuality = async (req, res) => {
     LIMIT 5;
   `;
 
-  // ✅ Convert angka string → number
+  // Convert angka string → number
   const fixNumbers = (rows) =>
     (rows || []).map((r) => {
       const out = {};
@@ -945,12 +1015,10 @@ const getGrowth = async (req, res) => {
 const getGrafikJam = async (req, res) => {
   try {
     const db = req.app.get("db");
-    
-    // Apply user-level filtering
-    const userFilter = req.dataFilter || {};
+
     let { cabang, unit } = req.query;
-    
-    // Override query params with user-level restrictions
+    const userFilter = req.dataFilter || {};
+
     if (userFilter.unit_id) {
       unit = userFilter.unit_id;
       cabang = userFilter.cabang_id || cabang;
@@ -958,87 +1026,93 @@ const getGrafikJam = async (req, res) => {
       cabang = userFilter.cabang_id;
     }
 
-    // ================== QUALITY (For Grafik Live ULaMM) ==================
-    let sqlQuality = `
+    let sql = `
       SELECT 
-        HOUR(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) AS jam,
-        SUM(CAST(OSPar AS DECIMAL(20,2))) AS total_par,
-        SUM(CAST(OS_LAR AS DECIMAL(20,2))) AS total_lar,
-        SUM(CAST(OSNPL AS DECIMAL(20,2))) AS total_npl
+        DATE(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) AS tanggal,
+        SUM(CAST(OSPar AS DECIMAL(20,2))) AS par,
+        SUM(CAST(OS_LAR AS DECIMAL(20,2))) AS lar,
+        SUM(CAST(OSNPL AS DECIMAL(20,2))) AS npl
       FROM \`For Grafik Live ULaMM\`
       WHERE 1=1
+      AND YEAR(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) = 2025
     `;
-    const paramsQ = [];
+
+    const params = [];
 
     if (cabang && cabang !== "All") {
-      sqlQuality += " AND UPPER(TRIM(Cabang)) = UPPER(TRIM(?))";
-      paramsQ.push(cabang);
+      sql += " AND UPPER(TRIM(Cabang)) = UPPER(TRIM(?))";
+      params.push(cabang);
     }
+
     if (unit && unit !== "All") {
-      sqlQuality += " AND UPPER(TRIM(Unit)) = UPPER(TRIM(?))";
-      paramsQ.push(unit);
+      sql += " AND UPPER(TRIM(Unit)) = UPPER(TRIM(?))";
+      params.push(unit);
     }
 
-    sqlQuality += ` GROUP BY jam ORDER BY jam `;
-    const [rowsQuality] = await db.promise().query(sqlQuality, paramsQ);
-
-    const quality = Array.from({ length: 24 }, (_, i) => {
-      const row = rowsQuality.find(r => r.jam === i);
-      return {
-        jam: i,
-        par: row ? Number(row.total_par) : 0,
-        lar: row ? Number(row.total_lar) : 0,
-        npl: row ? Number(row.total_npl) : 0,
-      };
-    });
-
-    // ================== PRODUCT (For Grafik Live KM200) ==================
-    let sqlProduct = `
-      SELECT 
-        HOUR(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) AS jam,
-        SUM(CAST(Noa_Plafond_Dibawah_50jt AS DECIMAL(20,2))) AS plafon_50,
-        SUM(CAST(Noa_Plafond_51_Hingga_100jt AS DECIMAL(20,2))) AS plafon_100,
-        SUM(CAST(Noa_Plafond_101_Hingga_200jt AS DECIMAL(20,2))) AS plafon_200,
-        SUM(CAST(Noa_Plafond_201_Hingga_400jt AS DECIMAL(20,2))) AS plafon_400,
-        SUM(CAST(Noa_Plafond_Lebih_Dari_400jt AS DECIMAL(20,2))) AS plafon_400plus
-      FROM \`For Grafil Live KM200\`
-      WHERE 1=1
+    sql += `
+      GROUP BY tanggal
+      ORDER BY tanggal ASC
     `;
-    const paramsP = [];
 
-    if (cabang && cabang !== "All") {
-      sqlProduct += " AND UPPER(TRIM(Cabang)) = UPPER(TRIM(?))";
-      paramsP.push(cabang);
-    }
-    if (unit && unit !== "All") {
-      sqlProduct += " AND UPPER(TRIM(Unit)) = UPPER(TRIM(?))";
-      paramsP.push(unit);
-    }
+    const [rows] = await db.promise().query(sql, params);
 
-    sqlProduct += ` GROUP BY jam ORDER BY jam `;
-    const [rowsProduct] = await db.promise().query(sqlProduct, paramsP);
-
-    const product = Array.from({ length: 24 }, (_, i) => {
-      const row = rowsProduct.find(r => r.jam === i);
-      return {
-        jam: i,
-        os1: row ? Number(row.os1) : 0,
-        os2: row ? Number(row.os2) : 0,
-        os3: row ? Number(row.os3) : 0,
-        os4: row ? Number(row.os4) : 0,
-        os5: row ? Number(row.os5) : 0,
-      };
-    });
-
-    // ================== RETURN RESPONSE ==================
-    res.json({ quality, product });
-
+    res.json(rows);
   } catch (err) {
-    console.error("❌ Error fetching grafik jam:", err.sqlMessage || err);
-    res.status(500).json({
-      error: "Internal Server Error",
-      detail: err.sqlMessage || err.message,
-    });
+    console.error("[ERROR] Grafik Trend:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+// ===========================
+// Endpoint: Grafik Product
+// ===========================
+const getGrafikProduct = async (req, res) => {
+  try {
+    const db = req.app.get("db");
+
+    let { cabang, unit } = req.query;
+    const userFilter = req.dataFilter || {};
+
+    if (userFilter.unit_id) {
+      unit = userFilter.unit_id;
+      cabang = userFilter.cabang_id || cabang;
+    } else if (userFilter.cabang_id) {
+      cabang = userFilter.cabang_id;
+    }
+
+    let sql = `
+      SELECT 
+        DATE(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) AS tanggal,
+        SUM(CAST(Noa_Plafond_Dibawah_50jt AS DECIMAL(20,2))) AS plafond_50,
+        SUM(CAST(Noa_Plafond_51_Hingga_100jt AS DECIMAL(20,2))) AS plafond_100,
+        SUM(CAST(Noa_Plafond_101_Hingga_200jt AS DECIMAL(20,2))) AS plafond_200,
+        SUM(CAST(Noa_Plafond_201_Hingga_400jt AS DECIMAL(20,2))) AS plafond_400,
+        SUM(CAST(Noa_Plafond_Lebih_Dari_400jt AS DECIMAL(20,2))) AS plafond_400plus
+      FROM \`For Grafik Live ULaMM\`
+      WHERE 1=1
+      AND YEAR(STR_TO_DATE(periode, '%d/%m/%Y %H:%i:%s')) = 2025
+    `;
+
+    const params = [];
+
+    if (cabang && cabang !== "All") {
+      sql += " AND UPPER(TRIM(Cabang)) = UPPER(TRIM(?))";
+      params.push(cabang);
+    }
+
+    if (unit && unit !== "All") {
+      sql += " AND UPPER(TRIM(Unit)) = UPPER(TRIM(?))";
+      params.push(unit);
+    }
+
+    sql += ` GROUP BY tanggal ORDER BY tanggal ASC`;
+
+    const [rows] = await db.promise().query(sql, params);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("[ERROR] Grafik Product:", err);
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -1108,14 +1182,21 @@ const getGrafikWriteOff = (req, res) => {
 
     // ================= Line Chart: Ambil 12 bulan terakhir =================
     const sqlLine = `
+      WITH months AS (
+        SELECT 1 AS month_num UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+        UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 
+        UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+      )
       SELECT 
-        DATE_FORMAT(STR_TO_DATE(tanggal_wo, '%Y%m%d'), '%Y-%m') AS bulan,
-        SUM(jml_wo) AS total_noa
-      FROM \`WO Daily\`
-      ${whereCondition}
-      AND STR_TO_DATE(tanggal_wo, '%Y%m%d') >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-      GROUP BY bulan
-      ORDER BY bulan
+        DATE_FORMAT(STR_TO_DATE(CONCAT(2025, '-', m.month_num, '-01'), '%Y-%m-%d'), '%Y-%m') AS bulan,
+        COALESCE(SUM(w.jml_wo), 0) AS total_noa
+      FROM months m
+      LEFT JOIN \`WO Daily\` w
+        ON MONTH(STR_TO_DATE(w.tanggal_wo, '%Y%m%d')) = m.month_num
+        AND YEAR(STR_TO_DATE(w.tanggal_wo, '%Y%m%d')) = 2025
+        ${whereCondition ? 'AND ' + whereCondition.replace('WHERE', '') : ''}
+      GROUP BY m.month_num
+      ORDER BY m.month_num;
     `;
 
     db.query(sqlLine, params, (err, lineResult) => {
@@ -1131,7 +1212,10 @@ const getGrafikWriteOff = (req, res) => {
         SELECT CAB, SUM(jml_wo) AS total_noa
         FROM \`WO Daily\`
         ${whereCondition}
-        AND YEAR(STR_TO_DATE(tanggal_wo, '%Y%m%d')) = YEAR(CURDATE())
+        AND YEAR(STR_TO_DATE(tanggal_wo, '%Y%m%d')) = (
+          SELECT MAX(YEAR(STR_TO_DATE(tanggal_wo, '%Y%m%d')))
+          FROM \`WO Daily\`
+        )
         GROUP BY CAB
         ORDER BY total_noa DESC
         LIMIT 5
@@ -1150,7 +1234,10 @@ const getGrafikWriteOff = (req, res) => {
           SELECT CAB, nama_unit, SUM(jml_wo) AS total_noa
           FROM \`WO Daily\`
           ${whereCondition}
-          AND YEAR(STR_TO_DATE(tanggal_wo, '%Y%m%d')) = YEAR(CURDATE())
+          AND YEAR(STR_TO_DATE(tanggal_wo, '%Y%m%d')) = (
+            SELECT MAX(YEAR(STR_TO_DATE(tanggal_wo, '%Y%m%d')))
+            FROM \`WO Daily\`
+          )
           GROUP BY CAB, nama_unit
           ORDER BY total_noa DESC
           LIMIT 5
@@ -1187,11 +1274,13 @@ module.exports = {
   getBranchLocations,
   getFilters,
   getSummary,
+  getSummaryLending,
   getGrafikPortofolio,
   getGrafikTrenPortofolio,
   getGrafikProductivity,
   getGrafikTrenQuality,
   getGrafikJam,
+  getGrafikProduct,
   getGrowth,
   getSummaryWO,
   getGrafikWriteOff

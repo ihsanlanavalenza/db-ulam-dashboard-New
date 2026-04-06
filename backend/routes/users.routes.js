@@ -8,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 // Rate limiter for user management - 50 requests per 15 minutes
 const userManagementLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 2000,
   message: { success: false, message: 'Terlalu banyak request. Silakan coba lagi dalam 15 menit.' },
   standardHeaders: true,
   legacyHeaders: false,

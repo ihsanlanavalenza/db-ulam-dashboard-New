@@ -9,7 +9,6 @@ router.use(requireAuth);
 router.use(applyDataFilter);
 
 // Export routes
-router.get('/summarymonthly', exportController.exportSummaryMonthly);
 router.get('/realtime', exportController.exportRealtime);
 router.get('/grafiklive', exportController.exportGrafikLive);
 

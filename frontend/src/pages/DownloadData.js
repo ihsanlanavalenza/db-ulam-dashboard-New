@@ -17,7 +17,6 @@ const DownloadData = () => {
   });
 
   const [selectedTables, setSelectedTables] = useState({
-    summarymonthly: true,
     realtime: false,
     grafiklive: false
   });
@@ -54,13 +53,6 @@ const DownloadData = () => {
       // Fetch data based on selected tables
       const promises = [];
       const tableData = {};
-
-      if (selectedTables.summarymonthly) {
-        promises.push(
-          dataAPI.getDataForExport('summarymonthly', params)
-            .then(res => { tableData.summarymonthly = res.data; })
-        );
-      }
 
       if (selectedTables.realtime) {
         promises.push(
@@ -244,16 +236,6 @@ const DownloadData = () => {
           <h2 className="text-xl font-semibold text-gray-700 mb-4">Pilih Data yang Akan Didownload</h2>
           
           <div className="space-y-3">
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedTables.summarymonthly}
-                onChange={() => handleTableSelect('summarymonthly')}
-                className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-gray-700 font-medium">Summary Monthly Data</span>
-            </label>
-
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"

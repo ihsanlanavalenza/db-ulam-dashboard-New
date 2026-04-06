@@ -53,7 +53,7 @@ const login = async (req, res) => {
 
     // Store session in database
     const tokenHash = crypto.createHash('sha256').update(accessToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await db.promise().query(
       'INSERT INTO user_sessions (user_id, token_hash, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)',

@@ -56,21 +56,38 @@ const Portofolio = ({ selectedCabang = "All", selectedUnit = "All" }) => {
 
   // Ambil data summary
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchAll = async () => {
       try {
         const params = {};
         if (selectedCabang !== "All") params.cabang = selectedCabang;
         if (selectedUnit !== "All") params.unit = selectedUnit;
 
-        const res = await dataAPI.getSummary(params);
-        setSummary(res.data || {});
+        // 🔥 CALL 2 API SEKALIGUS
+        const [resSummary, resLending] = await Promise.all([
+          dataAPI.getSummary(params),
+          dataAPI.getSummaryLending(params),
+        ]);
+
+        const summaryData = resSummary.data || {};
+        const lendingData = resLending.data || {};
+
+        setSummary({
+          ...summaryData,
+
+          // 🔥 inject lending
+          net_lending_bulan_ini: lendingData.net_lending_bulan_ini || 0,
+          noa_lending_bulan_ini: lendingData.noa_lending_bulan_ini || 0,
+          net_lending_tahun_ini: lendingData.net_lending_tahun_ini || 0,
+          noa_lending_tahun_ini: lendingData.noa_lending_tahun_ini || 0,
+        });
+
       } catch (err) {
-        console.error("[ERROR] Error fetching summary:", err);
+        console.error("[ERROR] Fetch summary:", err);
         setSummary({});
       }
     };
 
-    fetchSummary();
+    fetchAll();
   }, [selectedCabang, selectedUnit]);
 
   // Ambil data grafik portofolio (12 bulan terakhir otomatis)
@@ -88,7 +105,7 @@ const Portofolio = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         // Filter & urutkan tren NoA & OS
         const filteredTrenNoaOs = (res.data?.trenNoaOs || [])
           .filter(item => typeof item.bulan_date === "string" && item.bulan_date.trim() !== "")
-          .filter(item => new Date(item.bulan_date) <= now)
+          .filter(item => new Date(item.bulan_date).getFullYear() === 2025)
           .sort((a, b) => new Date(a.bulan_date) - new Date(b.bulan_date));
 
         // Filter & urutkan tren Penyaluran
@@ -97,8 +114,8 @@ const Portofolio = ({ selectedCabang = "All", selectedUnit = "All" }) => {
           .filter(item => new Date(item.bulan_date) <= now)
           .sort((a, b) => new Date(a.bulan_date) - new Date(b.bulan_date));
 
-        setDataTrenNoaOs(filteredTrenNoaOs.slice(-12));
-        setDataTrenPenyaluran(filteredTrenPenyaluran.slice(-12));
+        setDataTrenNoaOs(filteredTrenNoaOs);
+        setDataTrenPenyaluran(filteredTrenPenyaluran);
 
       } catch (err) {
         console.error("[ERROR] Error fetching grafik portofolio:", err);

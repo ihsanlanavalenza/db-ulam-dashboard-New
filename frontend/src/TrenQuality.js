@@ -66,9 +66,9 @@ const SectionGraph = ({ title, children, className = "" }) => (
 // ===================== Main Component =====================
 const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
   const [summary, setSummary] = useState({
-    par: { os: 0, noa: 0, pct: 0 },
-    lar: { os: 0, noa: 0, pct: 0 },
-    npl: { os: 0, noa: 0, pct: 0 },
+    par: { noa: 0, os: 0, pct: 0 },
+    lar: { noa: 0, os: 0, pct: 0 },
+    npl: { noa: 0, os: 0, pct: 0 },
   });
 
   const [grafik, setGrafik] = useState({
@@ -110,18 +110,18 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
 
         setSummary({
           par: {
-            os: Number(data.card_os_par) || 0,
             noa: Number(data.card_noa_par) || 0,
+            os: Number(data.card_os_par) || 0,
             pct: Number(data.card_pct_par) || 0,
           },
           lar: {
-            os: Number(data.card_os_lar) || 0,
             noa: Number(data.card_noa_lar) || 0,
+            os: Number(data.card_os_lar) || 0,
             pct: Number(data.card_pct_lar) || 0,
           },
           npl: {
-            os: Number(data.card_os_npl) || 0,
             noa: Number(data.card_noa_npl) || 0,
+            os: Number(data.card_os_npl) || 0,
             pct: Number(data.card_pct_npl) || 0,
           },
         });
@@ -144,11 +144,10 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         const data = res.data || {};
 
         const trend = (data.trend || []).map((d) => ({
-          periode: d.periode,
-          periodeKey: d.periode_date ? d.periode_date.slice(0, 7) : d.periode,
-          OSPAR: Number(d.OSPAR ?? d.ospar ?? d.os_par) || 0,
-          OSLAR: Number(d.OSLAR ?? d.oslar ?? d.os_lar) || 0,
-          OSNPL: Number(d.OSNPL ?? d.osnpl ?? d.os_npl) || 0,
+          periodeKey: d.periode_date, // 🔥 WAJIB FULL DATE (YYYY-MM-DD)
+          OSPAR: Number(d.OSPAR ?? 0),
+          OSLAR: Number(d.OSLAR ?? 0),
+          OSNPL: Number(d.OSNPL ?? 0),
         }));
 
         setGrafik({
@@ -195,65 +194,18 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
   const xTickFormatter = (periodeKey) => {
     if (!periodeKey) return "-";
 
-    if (/^\d{4}-\d{2}$/.test(periodeKey)) {
-      const [y, m] = periodeKey.split("-");
-      const year = parseInt(y, 10);
-      const month = parseInt(m, 10) - 1;
-      if (!isNaN(year) && month >= 0 && month < 12) {
-        return `${monthNames[month]} ${String(year).slice(2)}`;
-      }
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(periodeKey)) {
-      const [y, m] = periodeKey.split("-");
-      const year = parseInt(y, 10);
-      const month = parseInt(m, 10) - 1;
-      if (!isNaN(year) && month >= 0 && month < 12) {
-        return `${monthNames[month]} ${String(year).slice(2)}`;
-      }
-    }
-
-    if (/^[A-Za-z]{3}\s?\d{2}$/.test(periodeKey)) {
-      return periodeKey;
-    }
-
     const d = new Date(periodeKey);
-    if (!isNaN(d)) {
-      return `${monthNames[d.getMonth()]} ${String(
-        d.getFullYear()
-      ).slice(2)}`;
-    }
+    if (isNaN(d)) return "-";
 
-    return periodeKey;
+    return `${monthNames[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
   };
 
   // ===================== FILTER TREND =====================
   const filterTrendByRange = (trend) => {
-    const start = new Date("2024-09-01"); // Sep 24
-    const end = new Date("2025-08-31"); // Aug 25
-
-    return (trend || [])
-      .map((d) => {
-        const key = d.periodeKey;
-        let date = null;
-
-        if (/^\d{4}-\d{2}(-\d{2})?$/.test(key)) {
-          date = new Date(key.length === 7 ? key + "-01" : key);
-        } else if (/^[A-Za-z]{3}\s?\d{2}$/.test(key)) {
-          const [mon, yy] = key.split(" ");
-          const monthIndex = monthNames.findIndex(
-            (m) => m.toLowerCase() === mon.toLowerCase()
-          );
-          const year = 2000 + parseInt(yy, 10);
-          date = new Date(year, monthIndex, 1);
-        } else {
-          date = new Date(key);
-        }
-
-        return { ...d, _date: date };
-      })
-      .filter((d) => d._date && d._date >= start && d._date <= end)
-      .sort((a, b) => a._date - b._date);
+    return (trend || []).filter((d) => {
+      const date = new Date(d.periodeKey);
+      return !isNaN(date) && date.getFullYear() === 2025; // 🔥 FIX JAN–DES 2025
+    });
   };
 
   // ===================== RENDER =====================
@@ -265,8 +217,8 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
           title="PAR"
           col={1}
           items={[
-            { label: "OS PAR", value: formatNumber(summary.par.os, true) },
             { label: "NoA PAR", value: formatNumber(summary.par.noa) },
+            { label: "OS PAR", value: formatNumber(summary.par.os, true) },
             {
               label: "% PAR",
               value: summary.par.pct !== null && summary.par.pct !== undefined
@@ -336,9 +288,8 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         <CardGroup
           title="LAR"
           col={1}
-          items={[
+          items={[{ label: "NoA LAR", value: formatNumber(summary.lar.noa) },
             { label: "OS LAR", value: formatNumber(summary.lar.os, true) },
-            { label: "NoA LAR", value: formatNumber(summary.lar.noa) },
             {
               label: "% PAR",
               value: summary.lar.pct !== null && summary.lar.pct !== undefined
@@ -409,8 +360,8 @@ const TrenQuality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
           title="NPL"
           col={1}
           items={[
-            { label: "OS NPL", value: formatNumber(summary.npl.os, true) },
             { label: "NoA NPL", value: formatNumber(summary.npl.noa) },
+            { label: "OS NPL", value: formatNumber(summary.npl.os, true) },
             {
               label: "% PAR",
               value: summary.npl.pct !== null && summary.npl.pct !== undefined

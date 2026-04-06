@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { dataAPI } from "./services/api";
 import "./index.css";
-import { LineChart, LabelList,  XAxis, CartesianGrid,  Line, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart,  XAxis, CartesianGrid,  Line, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CardGroup = ({ title, items, col = 2 }) => (
   <div className="w-full bg-gradient-to-br from-white via-[#f0f0f0] to-gray-200 border border-gray-300 rounded-xl p-[1px] shadow">
@@ -103,8 +103,22 @@ const Productivity = ({ selectedCabang = "All", selectedUnit = "All" }) => {
           .filter(item => parseMonth(item.bulan_label) <= now)
           .sort((a, b) => parseMonth(a.bulan_label) - parseMonth(b.bulan_label));
 
-        setDataAOM(filteredAOM.slice(-12));
-        setDataUnit(filteredUnit.slice(-12));
+        const yearFilter = 2025;
+
+        const aom2025 = filteredAOM.filter(item => {
+          const date = parseMonth(item.bulan_label);
+          return date.getFullYear() === yearFilter;
+        });
+
+        const unit2025 = filteredUnit.filter(item => {
+          const date = parseMonth(item.bulan_label);
+          return date.getFullYear() === yearFilter;
+        });
+
+        const sortByMonth = (a, b) => parseMonth(a.bulan_label) - parseMonth(b.bulan_label);
+
+        setDataAOM(aom2025.sort(sortByMonth));
+        setDataUnit(unit2025.sort(sortByMonth));
 
       } catch (err) {
         console.error("[ERROR] Error fetching grafik-productivity:", err);
@@ -124,6 +138,7 @@ const Productivity = ({ selectedCabang = "All", selectedUnit = "All" }) => {
       if (number >= 1_000_000_000_000) return (number / 1_000_000_000_000).toFixed(2) + " T";
       if (number >= 1_000_000_000) return (number / 1_000_000_000).toFixed(2) + " Bn";
       if (number >= 1_000_000) return (number / 1_000_000).toFixed(2) + " M";
+      if (number >= 1_000) return (number / 1_000).toFixed(2) + " K";
     }
 
     return number.toLocaleString("id-ID", {
@@ -200,12 +215,6 @@ const Productivity = ({ selectedCabang = "All", selectedUnit = "All" }) => {
                 strokeWidth={2}
                 dot={{ r: 3, stroke: "#0B66B2", strokeWidth: 2, fill: "#fff" }}
               >
-                <LabelList
-                  dataKey="NoA_AOM"
-                  position="top"
-                  formatter={(value) => formatNumber(value, true)}
-                  style={{ fontSize: 10 }}
-                />
               </Line>
               <Line
                 type="monotone"
@@ -215,12 +224,6 @@ const Productivity = ({ selectedCabang = "All", selectedUnit = "All" }) => {
                 strokeWidth={2}
                 dot={{ r: 3, Stroke: "#7FB3FF", strokeWidth: 2, fill: "#fff" }}
               >
-                <LabelList
-                  dataKey="OS_AOM"
-                  position="top"
-                  formatter={(value) => formatNumber(value, true)}
-                  style={{ fontSize: 10 }}
-                />
               </Line>
             </LineChart>
           </ResponsiveContainer>
@@ -260,13 +263,6 @@ const Productivity = ({ selectedCabang = "All", selectedUnit = "All" }) => {
                 strokeWidth={2}
                 dot={{ r: 3, stroke: "#0B66B2", strokeWidth: 2, fill: "#fff" }}
               >
-              
-                <LabelList
-                  dataKey="NoA_Unit"
-                  position="top"
-                  formatter={(value) => formatNumber(value, true)}
-                  style={{ fontSize: 10 }}
-                />
               </Line>
               <Line
                 type="monotone"
@@ -276,12 +272,6 @@ const Productivity = ({ selectedCabang = "All", selectedUnit = "All" }) => {
                 strokeWidth={2}
                 dot={{ r: 3, stroke: "#7FB3FF", strokeWidth: 2, fill: "#fff" }}
               >
-                <LabelList
-                  dataKey="OS_Unit"
-                  position="top"
-                  formatter={(value) => formatNumber(value, true)}
-                  style={{ fontSize: 10 }}
-                />
               </Line>
             </LineChart>
           </ResponsiveContainer>

@@ -3,37 +3,8 @@ const db = require('../config/db');
 const { buildWhereClause } = require('../utils/filterHelper');
 
 /**
- * Export data from summarymonthly table
+ * Export data from Summary_Realtime_ULaMM table
  */
-const exportSummaryMonthly = async (req, res) => {
-  try {
-    const { whereClause, params } = buildWhereClause(req);
-    
-    const query = `
-      SELECT 
-        Periode,
-        cabang,
-        NamaUnit,
-        NOA,
-        NOAPar,
-        NOANpl,
-        NOALar,
-        OS,
-        OSPar,
-        OSNPL,
-        OS_LAR
-      FROM summarymonthly 
-      ${whereClause}
-      ORDER BY STR_TO_DATE(Periode, "%d/%m/%Y %H:%i:%s") DESC
-    `;
-    
-    const [rows] = await db.promise().query(query, params);
-    res.json(rows);
-  } catch (error) {
-    console.error('Error exporting summary monthly:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 /**
  * Export data from Summary_Realtime_ULaMM table
@@ -46,7 +17,7 @@ const exportRealtime = async (req, res) => {
       SELECT *
       FROM Summary_Realtime_ULaMM 
       ${whereClause}
-      ORDER BY STR_TO_DATE(Calender, "%d/%m/%Y %H:%i:%s") DESC
+      ORDER BY STR_TO_DATE(Periode, "%d/%m/%Y %H:%i:%s") DESC
     `;
     
     const [rows] = await db.promise().query(query, params);
@@ -68,7 +39,7 @@ const exportGrafikLive = async (req, res) => {
       SELECT *
       FROM \`For Grafik Live ULaMM\`
       ${whereClause}
-      ORDER BY STR_TO_DATE(Calender, "%d/%m/%Y %H:%i:%s") DESC
+      ORDER BY STR_TO_DATE(TGL_TARIK, "%d/%m/%Y %H:%i:%s") DESC
     `;
     
     const [rows] = await db.promise().query(query, params);
@@ -80,7 +51,6 @@ const exportGrafikLive = async (req, res) => {
 };
 
 module.exports = {
-  exportSummaryMonthly,
   exportRealtime,
   exportGrafikLive
 };

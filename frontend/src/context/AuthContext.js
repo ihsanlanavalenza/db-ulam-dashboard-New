@@ -18,33 +18,58 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('accessToken');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
+    const initAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      const savedUser = localStorage.getItem('user');
+
+      if (!token || !savedUser) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setIsAuthenticated(true);
-        
-        // Verify token is still valid
-        authAPI.verify()
-          .then(response => {
-            if (response.data.success) {
-              setUser(response.data.data.user);
-              localStorage.setItem('user', JSON.stringify(response.data.data.user));
+
+        try {
+          // 🔹 VERIFY
+          const response = await authAPI.verify();
+
+          if (response.data.success) {
+            setUser(response.data.data.user);
+            localStorage.setItem('user', JSON.stringify(response.data.data.user));
+          }
+        } catch (error) {
+          console.warn("Verify gagal, coba refresh token");
+
+          try {
+            // 🔹 REFRESH
+            const refreshResponse = await authAPI.refresh();
+
+            if (refreshResponse.data.success) {
+              const { accessToken } = refreshResponse.data.data;
+
+              localStorage.setItem('accessToken', accessToken);
+
+              // 🔹 RETRY VERIFY
+              const retry = await authAPI.verify();
+              setUser(retry.data.data.user);
+              setIsAuthenticated(true);
             }
-          })
-          .catch(() => {
+          } catch (err) {
+            console.error("Refresh token gagal:", err);
             logout();
-          });
+          }
+        }
       } catch (error) {
         logout();
+      } finally {
+        setLoading(false); // ✅ pindah ke sini
       }
-    }
-    
-    setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (username, password) => {

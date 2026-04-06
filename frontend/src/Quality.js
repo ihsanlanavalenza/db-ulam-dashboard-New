@@ -214,51 +214,56 @@ const Quality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
 
     // Ambil grafik jam (toleran terhadap bentuk response)
     const fetchGrafikJam = async () => {
-      try {
-        const res = await dataAPI.getGrafikJam({
-          cabang: selectedCabang !== "All" ? selectedCabang : undefined,
-          unit: selectedUnit !== "All" ? selectedUnit : undefined,
-        });
+        try {
+          const res = await dataAPI.getGrafikJam({
+            cabang: selectedCabang !== "All" ? selectedCabang : undefined,
+            unit: selectedUnit !== "All" ? selectedUnit : undefined,
+          });
 
-        const raw = res.data;
-        let arr = [];
+          const raw = res.data;
+          let arr = [];
 
-        // support beberapa bentuk response:
-        // - array langsung: [ { jam, par, lar, npl }, ... ]
-        // - wrapper object: { quality: [...], product: [...] } etc.
-        if (Array.isArray(raw)) {
-          arr = raw;
-        } else if (raw && Array.isArray(raw.quality)) {
-          arr = raw.quality;
-        } else if (raw && Array.isArray(raw.data)) {
-          arr = raw.data;
-        } else {
-          const maybe = raw && typeof raw === "object"
-            ? Object.values(raw).find((v) => Array.isArray(v))
-            : null;
-          arr = Array.isArray(maybe) ? maybe : [];
+          // handle berbagai kemungkinan response
+          if (Array.isArray(raw)) {
+            arr = raw;
+          } else if (raw && Array.isArray(raw.data)) {
+            arr = raw.data;
+          } else {
+            const maybe =
+              raw && typeof raw === "object"
+                ? Object.values(raw).find((v) => Array.isArray(v))
+                : null;
+            arr = Array.isArray(maybe) ? maybe : [];
+          }
+
+          const months = [
+            "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+            "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+          ];
+
+          const year = 2025;
+
+          const filled = months.map((m, i) => {
+            const found = arr.find((d) => {
+              const date = new Date(d.tanggal);
+              return date.getMonth() === i && date.getFullYear() === year;
+            });
+
+            return {
+              label: `${m} 25`,
+              par: Number(found?.par ?? 0),
+              lar: Number(found?.lar ?? 0),
+              npl: Number(found?.npl ?? 0),
+            };
+          });
+
+          setGrafikJam(filled);
+
+        } catch (err) {
+          console.error("[ERROR] Error fetching grafik:", err);
+          setGrafikJam([]);
         }
-
-        // ensure jam 0..23 exist
-        const filled = Array.from({ length: 24 }, (_, i) => {
-          const found = arr.find((d) => Number(d.jam) === i) || {};
-          return {
-            jam: i,
-            par: Number(found.total_par ?? found.par ?? found.OSPar ?? 0) || 0,
-            lar: Number(found.total_lar ?? found.lar ?? found.OS_LAR ?? 0) || 0,
-            npl: Number(found.total_npl ?? found.npl ?? found.OSNPL ?? 0) || 0,
-          };
-        });
-
-        setGrafikJam(filled);
-      } catch (err) {
-        console.error("[ERROR] Error fetching grafik jam:", err);
-        // fallback zeros so charts won't crash
-        setGrafikJam(
-          Array.from({ length: 24 }, (_, i) => ({ jam: i, par: 0, lar: 0, npl: 0 }))
-        );
-      }
-    };
+      };
 
     fetchSummary();
     fetchGrowth();
@@ -351,64 +356,91 @@ const Quality = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         />
       </div>
 
-      {/* Baris 3: Grafik JAM */}
+      {/* Baris 3: Grafik TREND (FIX) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <SectionGraph title="Grafik JAM PAR">
+
+        {/* PAR */}
+        <SectionGraph title="Grafik PAR">
           <ResponsiveContainer width="100%" height={170}>
             <AreaChart data={grafikJam}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
-                dataKey="jam"
+                dataKey="label"
+                tick={{ fontSize: 12 }}
+                interval={1}
+              />
+              <YAxis tickFormatter={(v) => formatNumber(v, true)} 
                 style={{ fontSize: 12 }}
-                ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]}
               />
-              <YAxis style={{ fontSize: 12 }} tickFormatter={(v) => formatNumber(v, true)} />
               <Tooltip
-                formatter={(value) => new Intl.NumberFormat("id-ID").format(Number(value))}
-                labelFormatter={(label) => `Jam ${label}`}
+                formatter={(value) =>
+                  new Intl.NumberFormat("id-ID").format(Number(value))
+                }
+                labelFormatter={(label) => `Tanggal ${label}`}
               />
-              <Area type="monotone" dataKey="par" stackId="1" stroke="#0B66B2" fill="#0B66B2" />
+              <Area
+                type="monotone"
+                dataKey="par"
+                stroke="#0B66B2"
+                fill="#0B66B2"
+                fillOpacity={0.3}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </SectionGraph>
 
-        <SectionGraph title="Grafik JAM LAR">
+        {/* LAR */}
+        <SectionGraph title="Grafik LAR">
           <ResponsiveContainer width="100%" height={170}>
             <AreaChart data={grafikJam}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="jam"
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} interval={1}/>
+              <YAxis tickFormatter={(v) => formatNumber(v, true)} 
                 style={{ fontSize: 12 }}
-                ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]}
               />
-              <YAxis style={{ fontSize: 12 }} tickFormatter={(v) => formatNumber(v, true)} />
               <Tooltip
-                formatter={(value) => new Intl.NumberFormat("id-ID").format(Number(value))}
-                labelFormatter={(label) => `Jam ${label}`}
+                formatter={(value) =>
+                  new Intl.NumberFormat("id-ID").format(Number(value))
+                }
+                labelFormatter={(label) => `Tanggal ${label}`}
               />
-              <Area type="monotone" dataKey="lar" stackId="1" stroke="#0B66B2" fill="#0B66B2" />
+              <Area
+                type="monotone"
+                dataKey="lar"
+                stroke="#0B66B2"
+                fill="#0B66B2"
+                fillOpacity={0.3}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </SectionGraph>
 
-        <SectionGraph title="Grafik JAM NPL">
+        {/* NPL */}
+        <SectionGraph title="Grafik NPL">
           <ResponsiveContainer width="100%" height={170}>
             <AreaChart data={grafikJam}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="jam"
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} interval={1}/>
+              <YAxis tickFormatter={(v) => formatNumber(v, true)} 
                 style={{ fontSize: 12 }}
-                ticks={[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]}
               />
-              <YAxis style={{ fontSize: 12 }} tickFormatter={(v) => formatNumber(v, true)} />
               <Tooltip
-                formatter={(value) => new Intl.NumberFormat("id-ID").format(Number(value))}
-                labelFormatter={(label) => `Jam ${label}`}
+                formatter={(value) =>
+                  new Intl.NumberFormat("id-ID").format(Number(value))
+                }
+                labelFormatter={(label) => `Tanggal ${label}`}
               />
-              <Area type="monotone" dataKey="npl" stackId="1" stroke="#0B66B2" fill="#0B66B2" />
+              <Area
+                type="monotone"
+                dataKey="npl"
+                stroke="#0B66B2"
+                fill="#0B66B2"
+                fillOpacity={0.3}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </SectionGraph>
+
       </div>
 
       {/* Footer */}

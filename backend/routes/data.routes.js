@@ -8,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 // Rate limiter for data endpoints - 100 requests per 15 minutes
 const dataLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // max 100 requests
+  max: 2000, // max 100 requests
   message: { success: false, message: 'Terlalu banyak request. Silakan coba lagi dalam 15 menit.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -21,6 +21,7 @@ const validateAndHandle = [dataLimiter, requireAuth, applyDataFilter, validateQu
 router.get('/branch-locations', validateAndHandle, dataController.getBranchLocations);
 router.get('/filters', requireAuth, applyDataFilter, dataController.getFilters);
 router.get('/summary', validateAndHandle, dataController.getSummary);
+router.get("/summary-lending", validateAndHandle, dataController.getSummaryLending);
 router.get('/summary-wo', validateAndHandle, dataController.getSummaryWO);
 router.get('/grafik-productivity', validateAndHandle, dataController.getGrafikProductivity);
 router.get('/grafik-tren-portofolio', validateAndHandle, dataController.getGrafikTrenPortofolio);
@@ -28,6 +29,7 @@ router.get('/grafik-portofolio', validateAndHandle, dataController.getGrafikPort
 router.get('/grafik-tren-quality', validateAndHandle, dataController.getGrafikTrenQuality);
 router.get("/growth-summary", validateAndHandle, dataController.getGrowth);
 router.get("/grafik-jam", validateAndHandle, dataController.getGrafikJam);
+router.get("/grafik-product", validateAndHandle, dataController.getGrafikProduct);
 router.get("/grafik-writeoff", validateAndHandle, dataController.getGrafikWriteOff);
 
 module.exports = router;

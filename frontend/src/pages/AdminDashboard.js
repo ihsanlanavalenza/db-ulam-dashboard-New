@@ -138,17 +138,16 @@ const AdminDashboard = () => {
             description="Tambah, edit, atau hapus user"
           />
           <ActionButton
+            to="/admin/data"
+            icon="database"
+            title="Manage Data"
+            description="Tambah dan hapus data monitoring"
+          />
+          <ActionButton
             to="/"
             icon="chart"
             title="View Dashboard"
             description="Lihat dashboard monitoring"
-          />
-          <ActionButton
-            to="/admin/logs"
-            icon="document"
-            title="Audit Logs"
-            description="Lihat riwayat aktivitas"
-            disabled
           />
         </div>
       </div>

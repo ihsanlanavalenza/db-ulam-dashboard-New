@@ -39,7 +39,7 @@ const getTransactions = async (req, res) => {
       : '';
     
     // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM summarymonthly ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) as total FROM Summary_Realtime_ULaMM ${whereClause}`;
     const [countResult] = await db.promise().query(countQuery, params);
     const total = countResult[0].total;
     
@@ -57,7 +57,7 @@ const getTransactions = async (req, res) => {
         OSPar,
         OSNPL,
         OS_LAR
-      FROM summarymonthly 
+      FROM Summary_Realtime_ULaMM 
       ${whereClause}
       ORDER BY STR_TO_DATE(Periode, "%d/%m/%Y %H:%i:%s") DESC
       LIMIT ? OFFSET ?
@@ -126,7 +126,7 @@ const createTransaction = async (req, res) => {
     }
     
     // Step 1: Get actual table columns to avoid column count mismatch
-    const [columns] = await db.promise().query('SHOW COLUMNS FROM summarymonthly');
+    const [columns] = await db.promise().query('SHOW COLUMNS FROM Summary_Realtime_ULaMM');
     const columnNames = columns.map(col => col.Field);
     
     // Map form fields to potential column names (case-insensitive matching)
@@ -181,7 +181,7 @@ const createTransaction = async (req, res) => {
     }
     
     const placeholders = insertColumns.map(() => '?').join(', ');
-    const query = `INSERT INTO summarymonthly (${insertColumns.join(', ')}) VALUES (${placeholders})`;
+    const query = `INSERT INTO Summary_Realtime_ULaMM (${insertColumns.join(', ')}) VALUES (${placeholders})`;
     
     console.log('INSERT columns:', insertColumns);
     console.log('INSERT values count:', insertValues.length);
@@ -223,7 +223,7 @@ const deleteTransaction = async (req, res) => {
     console.log('DELETE request - Periode:', periode, 'Cabang:', cabang, 'NamaUnit:', namaUnit);
     
     // Detect the actual NamaUnit column name in the table
-    const [columns] = await db.promise().query('SHOW COLUMNS FROM summarymonthly');
+    const [columns] = await db.promise().query('SHOW COLUMNS FROM Summary_Realtime_ULaMM');
     const columnNames = columns.map(col => col.Field);
     
     // Find the right column name for NamaUnit (could be NamaUnit, namaunit, Nama_Unit, etc.)
@@ -243,13 +243,13 @@ const deleteTransaction = async (req, res) => {
     
     if (!namaUnit || namaUnit === 'null' || namaUnit === 'undefined' || namaUnit === '') {
       // NamaUnit is null/empty - match rows where NamaUnit IS NULL or empty
-      selectQuery = `SELECT * FROM summarymonthly WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '') LIMIT 1`;
-      deleteQuery = `DELETE FROM summarymonthly WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '')`;
+      selectQuery = `SELECT * FROM Summary_Realtime_ULaMM WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '') LIMIT 1`;
+      deleteQuery = `DELETE FROM Summary_Realtime_ULaMM WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '')`;
       queryParams = [periode, cabang];
     } else {
       // NamaUnit has a value - match exactly
-      selectQuery = `SELECT * FROM summarymonthly WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND ${unitColumn} = ? LIMIT 1`;
-      deleteQuery = `DELETE FROM summarymonthly WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND ${unitColumn} = ?`;
+      selectQuery = `SELECT * FROM Summary_Realtime_ULaMM WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND ${unitColumn} = ? LIMIT 1`;
+      deleteQuery = `DELETE FROM Summary_Realtime_ULaMM WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND ${unitColumn} = ?`;
       queryParams = [periode, cabang, namaUnit];
     }
     
@@ -266,10 +266,10 @@ const deleteTransaction = async (req, res) => {
       let altParams;
       
       if (!namaUnit || namaUnit === 'null' || namaUnit === 'undefined' || namaUnit === '') {
-        altSelectQuery = `SELECT * FROM summarymonthly WHERE TRIM(${periodeColumn}) LIKE ? AND TRIM(${cabangColumn}) = TRIM(?) AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '') LIMIT 1`;
+        altSelectQuery = `SELECT * FROM Summary_Realtime_ULaMM WHERE TRIM(${periodeColumn}) LIKE ? AND TRIM(${cabangColumn}) = TRIM(?) AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '') LIMIT 1`;
         altParams = [`%${periode.trim()}%`, cabang.trim()];
       } else {
-        altSelectQuery = `SELECT * FROM summarymonthly WHERE TRIM(${periodeColumn}) LIKE ? AND TRIM(${cabangColumn}) = TRIM(?) AND TRIM(${unitColumn}) = TRIM(?) LIMIT 1`;
+        altSelectQuery = `SELECT * FROM Summary_Realtime_ULaMM WHERE TRIM(${periodeColumn}) LIKE ? AND TRIM(${cabangColumn}) = TRIM(?) AND TRIM(${unitColumn}) = TRIM(?) LIMIT 1`;
         altParams = [`%${periode.trim()}%`, cabang.trim(), namaUnit.trim()];
       }
       
@@ -300,12 +300,12 @@ const deleteTransaction = async (req, res) => {
       
       if (actualUnit) {
         await db.promise().query(
-          `DELETE FROM summarymonthly WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND ${unitColumn} = ?`,
+          `DELETE FROM Summary_Realtime_ULaMM WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND ${unitColumn} = ?`,
           [actualPeriode, actualCabang, actualUnit]
         );
       } else {
         await db.promise().query(
-          `DELETE FROM summarymonthly WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '')`,
+          `DELETE FROM Summary_Realtime_ULaMM WHERE ${periodeColumn} = ? AND ${cabangColumn} = ? AND (${unitColumn} IS NULL OR TRIM(${unitColumn}) = '')`,
           [actualPeriode, actualCabang]
         );
       }
