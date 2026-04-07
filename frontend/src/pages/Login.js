@@ -124,19 +124,9 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Demo Credentials Info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-xs text-gray-600 font-semibold mb-2">Demo Credentials:</p>
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>• Admin: admin / admin123</p>
-            <p>• Cabang: user_jakarta / user123</p>
-            <p>• Unit: user_cibubur / user123</p>
-          </div>
-        </div>
-
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-gray-500">
-          <p>&copy; 2026 Dashboard MBU. All rights reserved.</p>
+          <p>&copy; Dashboard ULaMM. All rights reserved.</p>
         </div>
       </div>
     </div>
