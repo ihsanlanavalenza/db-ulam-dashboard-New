@@ -158,6 +158,77 @@ const DataManagement = () => {
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: 1,
+        limit: 999999, // Ambil semua data sesuai filter
+        ...filters
+      };
+      
+      const res = await dataManagementAPI.getTransactions(params);
+      
+      if (res.data.success && res.data.data.length > 0) {
+        const dataToExport = res.data.data;
+        
+        // Define headers
+        const headers = [
+          'Periode',
+          'Cabang',
+          'Nama Unit',
+          'NOA',
+          'NOA PAR',
+          'NOA NPL',
+          'NOA LAR',
+          'OS',
+          'OS PAR',
+          'OS NPL',
+          'OS LAR'
+        ];
+        
+        // Create CSV content (using standard format handle commas nicely)
+        let csv = headers.join(',') + '\n';
+        
+        dataToExport.forEach(row => {
+          const values = [
+            `"${row.Periode || ''}"`,
+            `"${row.Cabang || ''}"`,
+            `"${row.NamaUnit || ''}"`,
+            row.NOA || 0,
+            row.NoaPar || 0,
+            row.NoaNpl || 0,
+            row.Noa_LAR || 0,
+            row.OS || 0,
+            row.OSPar || 0,
+            row.OSNPL || 0,
+            row.OS_LAR || 0
+          ];
+          csv += values.join(',') + '\n';
+        });
+        
+        // Trigger download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        const dateStr = new Date().toISOString().split('T')[0];
+        link.setAttribute('download', `data_management_${dateStr}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        alert('Tidak ada data untuk didownload sesuai filter ini.');
+      }
+    } catch (error) {
+      console.error('Error downloading data:', error);
+      alert('Gagal mendownload data: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCurrency = (value) => {
     if (!value) return 'Rp 0';
     return 'Rp ' + parseFloat(value).toLocaleString('id-ID');
@@ -228,12 +299,26 @@ const DataManagement = () => {
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-3">
             <button
               onClick={() => setShowModal(true)}
               className="bg-[#0B66B2] text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
             >
               + Tambah Data Baru
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-2 border border-[#0B66B2] text-[#0B66B2] rounded-md hover:bg-blue-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#0B66B2]"></div>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              <span>Download Data</span>
             </button>
           </div>
         </div>

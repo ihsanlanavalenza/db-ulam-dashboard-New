@@ -10,7 +10,6 @@ import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import DataManagement from "./pages/DataManagement";
-import DownloadData from "./pages/DownloadData";
 import HomePage from "./HomePage";
 import Productivity from "./Productivity";
 import TrenPortofolio from "./TrenPortofolio";
@@ -322,15 +321,6 @@ const MainLayout = () => {
 
             {/* Right: Action Icons & Profile */}
             <div className="flex items-center gap-4">
-              {/* Export/Download Icon */}
-              <Link
-                to="/download"
-                className="relative hover:bg-white/20 p-2 rounded-full transition cursor-pointer"
-                title="Download Data"
-              >
-                <Icon name="download" className="w-6 h-6" />
-              </Link>
-
               {/* Notification Icon */}
               <div className="relative">
                 <button
@@ -533,10 +523,6 @@ const MainLayout = () => {
                   <DataManagement />
                 </ProtectedRoute>
               } 
-            />
-            <Route 
-              path="/download" 
-              element={<DownloadData />} 
             />
             
             {/* Regular Routes */}
