@@ -25,8 +25,13 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: |
-          rm -f ../package.json ../package-lock.json
-          npm install
+          npm ci
+
+      - name: Verify axios dependency
+        working-directory: frontend
+        run: |
+          npm ls axios
+          test -d node_modules/axios
 
       - name: Build frontend
         working-directory: frontend
