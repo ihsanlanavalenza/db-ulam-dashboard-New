@@ -1,5 +1,5 @@
 // frontend/src/pages/DataManagement.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { dataManagementAPI, dataAPI } from '../services/api';
 
 const DataManagement = () => {
@@ -55,7 +55,7 @@ const DataManagement = () => {
   }, []);
 
   // Fetch transactions
-  const fetchTransactions = async (page = 1) => {
+  const fetchTransactions = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = {
@@ -63,9 +63,9 @@ const DataManagement = () => {
         limit: pagination.limit,
         ...filters
       };
-      
+
       const res = await dataManagementAPI.getTransactions(params);
-      
+
       if (res.data.success) {
         setTransactions(res.data.data);
         setPagination(res.data.pagination);
@@ -76,11 +76,11 @@ const DataManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.limit]);
 
   useEffect(() => {
     fetchTransactions();
-  }, [filters.cabang, filters.unit, filters.startDate, filters.endDate]);
+  }, [fetchTransactions]);
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
