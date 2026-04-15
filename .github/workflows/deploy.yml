@@ -1,0 +1,80 @@
+name: Deploy to cPanel via FTP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Prepare deploy package
+        run: |
+          rm -rf deploy-package
+          mkdir -p deploy-package
+
+          # Frontend static files are served from web root.
+          cp -R frontend/build/. deploy-package/
+
+          # Backend files for Node.js runtime on cPanel.
+          mkdir -p deploy-package/backend
+          cp -R backend/config deploy-package/backend/
+          cp -R backend/controllers deploy-package/backend/
+          cp -R backend/middleware deploy-package/backend/
+          cp -R backend/routes deploy-package/backend/
+          cp -R backend/utils deploy-package/backend/
+          cp backend/server.js deploy-package/backend/
+          cp backend/package.json deploy-package/backend/
+          cp backend/package-lock.json deploy-package/backend/
+          cp backend/.env.example deploy-package/backend/
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: ./deploy-package/
+          server-dir: /public_html/
+          dangerous-clean-slate: true
+          exclude: |
+            **/.git/**
+            **/.github/**
+            **/node_modules/**
+            **/README.md
+            **/*.md
+            **/.env
+            **/.env.*
+            **/tests/**
+            **/docs/**
+            **/migrations/**
+            **/.vscode/**
+            **/.idea/**
+            **/*.log
+            **/*.sql
+            **/*.sql.gz
+            **/tmp/**
+            **/temp/**
+            **/.DS_Store
