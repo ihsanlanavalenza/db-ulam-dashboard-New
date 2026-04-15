@@ -166,12 +166,15 @@ jobs:
       - name: Verify deploy result
         if: always()
         run: |
-          if [ '${{ steps.deploy_primary.outcome }}' = 'success' ]; then
+          echo "Primary outcome=${{ steps.deploy_primary.outcome }}, conclusion=${{ steps.deploy_primary.conclusion }}"
+          echo "Fallback outcome=${{ steps.deploy_fallback.outcome }}, conclusion=${{ steps.deploy_fallback.conclusion }}"
+
+          if [ '${{ steps.deploy_primary.conclusion }}' = 'success' ] || [ '${{ steps.deploy_primary.outcome }}' = 'success' ]; then
             echo "Primary deploy succeeded"
             exit 0
           fi
 
-          if [ '${{ steps.deploy_fallback.outcome }}' = 'success' ]; then
+          if [ '${{ steps.deploy_fallback.conclusion }}' = 'success' ] || [ '${{ steps.deploy_fallback.outcome }}' = 'success' ]; then
             echo "Fallback deploy succeeded"
             exit 0
           fi
