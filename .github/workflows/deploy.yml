@@ -24,7 +24,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm install
+        run: npm cache clean --force && rm -rf node_modules && npm install
 
       - name: Build frontend
         working-directory: frontend
