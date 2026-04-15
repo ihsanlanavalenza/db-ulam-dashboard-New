@@ -131,7 +131,7 @@ jobs:
 
       - name: Deploy via FTPS fallback (port 990)
         id: deploy_fallback
-        if: steps.deploy_primary.outcome == 'failure' && secrets.FTP_PROTOCOL == '' && secrets.FTP_PORT == ''
+        if: steps.deploy_primary.outcome == 'failure'
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
