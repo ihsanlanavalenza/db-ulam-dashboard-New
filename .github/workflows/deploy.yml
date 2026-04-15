@@ -96,7 +96,9 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy via FTP
+      - name: Deploy via FTP (primary)
+        id: deploy_primary
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ steps.ftp_host.outputs.value }}
@@ -126,3 +128,53 @@ jobs:
             **/tmp/**
             **/temp/**
             **/.DS_Store
+
+      - name: Deploy via FTPS fallback (port 990)
+        id: deploy_fallback
+        if: steps.deploy_primary.outcome == 'failure' && secrets.FTP_PROTOCOL == '' && secrets.FTP_PORT == ''
+        continue-on-error: true
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ steps.ftp_host.outputs.value }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 990
+          local-dir: ./deploy-package/
+          server-dir: /public_html/
+          dangerous-clean-slate: true
+          exclude: |
+            **/.git/**
+            **/.github/**
+            **/node_modules/**
+            **/README.md
+            **/*.md
+            **/.env
+            **/.env.*
+            **/tests/**
+            **/docs/**
+            **/migrations/**
+            **/.vscode/**
+            **/.idea/**
+            **/*.log
+            **/*.sql
+            **/*.sql.gz
+            **/tmp/**
+            **/temp/**
+            **/.DS_Store
+
+      - name: Verify deploy result
+        if: always()
+        run: |
+          if [ '${{ steps.deploy_primary.outcome }}' = 'success' ]; then
+            echo "Primary deploy succeeded"
+            exit 0
+          fi
+
+          if [ '${{ steps.deploy_fallback.outcome }}' = 'success' ]; then
+            echo "Fallback deploy succeeded"
+            exit 0
+          fi
+
+          echo "Deploy failed in both primary and fallback attempts."
+          exit 1
