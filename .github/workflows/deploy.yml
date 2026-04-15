@@ -57,10 +57,33 @@ jobs:
           cp backend/package-lock.json deploy-package/backend/
           cp backend/.env.example deploy-package/backend/
 
+      - name: Normalize FTP server host
+        id: ftp_host
+        run: |
+          raw='${{ secrets.FTP_SERVER }}'
+          clean=$(printf '%s' "$raw" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##; s#^ftps?://##; s#/.*$##')
+
+          if [ -z "$clean" ]; then
+            echo "FTP_SERVER secret is empty after normalization."
+            exit 1
+          fi
+
+          echo "value=$clean" >> "$GITHUB_OUTPUT"
+
+      - name: Validate FTP host DNS
+        run: |
+          host='${{ steps.ftp_host.outputs.value }}'
+          echo "Validating DNS for FTP host: $host"
+          if ! getent ahosts "$host" >/dev/null 2>&1; then
+            echo "Cannot resolve FTP host: $host"
+            echo "Set FTP_SERVER to a valid hostname or IP (without ftp://, https://, or path)."
+            exit 1
+          fi
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ steps.ftp_host.outputs.value }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
