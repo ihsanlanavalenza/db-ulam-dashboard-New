@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import "./index.css";
 import { LineChart, LabelList,  XAxis, YAxis,  CartesianGrid,  Line, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -62,8 +61,18 @@ const Portofolio = ({ selectedCabang = "All", selectedUnit = "All" }) => {
         if (selectedCabang !== "All") params.cabang = selectedCabang;
         if (selectedUnit !== "All") params.unit = selectedUnit;
 
-        const res = await axios.get("http://localhost:3001/api/summary", { params });
-        setSummary(res.data || {});
+        const query = new URLSearchParams(params).toString();
+        const url = query
+          ? `http://localhost:3001/api/summary?${query}`
+          : "http://localhost:3001/api/summary";
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        setSummary(data || {});
       } catch (err) {
         console.error("❌ Error fetching summary:", err);
         setSummary({});

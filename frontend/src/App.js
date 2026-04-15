@@ -18,8 +18,7 @@ import TrenQuality from "./TrenQuality";
 import Quality from "./Quality";
 import Product from "./Product";
 import WriteOff from "./WriteOff";
-import { dataAPI, notificationAPI } from "./services/api";
-import axios from 'axios';
+import { authAPI, dataAPI, notificationAPI } from "./services/api";
 
 const App = () => {
   return (
@@ -113,12 +112,14 @@ const MainLayout = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      await authAPI.logout();
     } catch (error) {
       console.log("Logout API error:", error);
     }
 
     localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
 
     window.location.href = '/login';

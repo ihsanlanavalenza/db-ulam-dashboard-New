@@ -1,51 +1,110 @@
 // frontend/src/services/api.js
-import axios from 'axios';
-
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
 
-// Create axios instance
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true,
-  timeout: 30000, // 30 seconds timeout
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const normalizeHeaders = (headers) => {
+  const out = {};
+  headers.forEach((value, key) => {
+    out[key] = value;
+  });
+  return out;
+};
 
-// Request interceptor to add token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+const clearAuthAndRedirect = () => {
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
 
-// Response interceptor to handle errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
+  if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.href = '/login';
   }
-);
+};
+
+const buildUrl = (path, params) => {
+  const base = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  const url = new URL(base, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+
+  if (params && typeof params === 'object') {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      url.searchParams.append(key, value);
+    });
+  }
+
+  return url.toString();
+};
+
+const parseBody = async (response) => {
+  if (response.status === 204) return null;
+
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+
+  return response.text();
+};
+
+const createHttpError = (response, data) => {
+  const message = (data && data.message) || `Request failed with status ${response.status}`;
+  const error = new Error(message);
+  error.response = {
+    status: response.status,
+    data,
+    headers: normalizeHeaders(response.headers),
+  };
+  return error;
+};
+
+const request = async (method, path, config = {}) => {
+  const { params, data, headers = {} } = config;
+  const token = localStorage.getItem('accessToken');
+  const requestHeaders = { ...headers };
+
+  if (token) {
+    requestHeaders.Authorization = `Bearer ${token}`;
+  }
+
+  const hasBody = data !== undefined && data !== null && method !== 'GET';
+  if (hasBody && !requestHeaders['Content-Type']) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(buildUrl(path, params), {
+    method,
+    credentials: 'include',
+    headers: requestHeaders,
+    body: hasBody ? JSON.stringify(data) : undefined,
+  });
+
+  const parsed = await parseBody(response);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthAndRedirect();
+    }
+    throw createHttpError(response, parsed);
+  }
+
+  return {
+    data: parsed,
+    status: response.status,
+    headers: normalizeHeaders(response.headers),
+  };
+};
+
+const api = {
+  get: (path, config = {}) => request('GET', path, config),
+  post: (path, data, config = {}) => request('POST', path, { ...config, data }),
+  put: (path, data, config = {}) => request('PUT', path, { ...config, data }),
+  patch: (path, data, config = {}) => request('PATCH', path, { ...config, data }),
+  delete: (path, config = {}) => request('DELETE', path, config),
+};
 
 // Authentication APIs
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
+  refresh: () => api.post('/auth/refresh'),
   verify: () => api.get('/auth/verify'),
   getProfile: () => api.get('/auth/profile'),
 };
