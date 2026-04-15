@@ -61,14 +61,30 @@ jobs:
         id: ftp_host
         run: |
           raw='${{ secrets.FTP_SERVER }}'
-          clean=$(printf '%s' "$raw" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##; s#^ftps?://##; s#/.*$##')
+          clean=$(printf '%s' "$raw" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##; s#^ftps?://##; s#^https?://##; s#/.*$##')
 
           if [ -z "$clean" ]; then
             echo "FTP_SERVER secret is empty after normalization."
             exit 1
           fi
 
-          echo "value=$clean" >> "$GITHUB_OUTPUT"
+          host="$clean"
+          parsed_port=""
+
+          # If user provided host:port, split it so DNS validation works.
+          if printf '%s' "$clean" | grep -Eq '^[^:]+:[0-9]+$'; then
+            host="${clean%%:*}"
+            parsed_port="${clean##*:}"
+          fi
+
+          # cPanel web login ports are not FTP ports.
+          if [ "$parsed_port" = "2082" ] || [ "$parsed_port" = "2083" ]; then
+            echo "Detected cPanel web port ($parsed_port); using FTP default port instead."
+            parsed_port=""
+          fi
+
+          echo "value=$host" >> "$GITHUB_OUTPUT"
+          echo "parsed_port=$parsed_port" >> "$GITHUB_OUTPUT"
 
       - name: Validate FTP host DNS
         run: |
@@ -87,7 +103,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
-          port: ${{ secrets.FTP_PORT || 21 }}
+          port: ${{ secrets.FTP_PORT || steps.ftp_host.outputs.parsed_port || 21 }}
           local-dir: ./deploy-package/
           server-dir: /public_html/
           dangerous-clean-slate: true
