@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -59,20 +61,33 @@ app.use('/api/export', exportRoutes);
 // Data routes
 app.use('/api', dataRoutes);
 
-// Default route
-app.get("/", (req, res) => {
-  res.send("Backend MBU running.");
-});
-
-// Admin route
-app.get("/admin", (req, res) => {
+// Backend health route
+app.get('/api/health', (req, res) => {
   res.json({ 
     success: true, 
-    message: "Admin panel endpoint",
+    message: 'Backend API is running',
     server: "MBU Dashboard Backend",
     version: "1.0.0"
   });
 });
+
+// If Node.js app is mounted on the main domain in cPanel,
+// serve React build files from ../ (public_html) for non-API routes.
+const frontendRootPath = path.resolve(__dirname, '..');
+const frontendIndexPath = path.join(frontendRootPath, 'index.html');
+const hasFrontendBuild = fs.existsSync(frontendIndexPath);
+
+if (hasFrontendBuild) {
+  app.use(express.static(frontendRootPath));
+
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(frontendIndexPath);
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('Backend MBU running. Frontend build not found.');
+  });
+}
 
 // Error handling middleware (must be last)
 const { errorHandler, notFound } = require('./middleware/errorHandler');
