@@ -41,7 +41,7 @@ const App = () => {
 const MainLayout = () => {
   const location = useLocation();
   const currentPath = location.pathname;
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const [cabangList, setCabangList] = useState([]);
   const [unitList, setUnitList] = useState([]);

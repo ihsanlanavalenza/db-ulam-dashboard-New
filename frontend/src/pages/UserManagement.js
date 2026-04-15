@@ -129,7 +129,7 @@ const UserManagement = () => {
           return;
         }
         
-        if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(formData.password)) {
+        if (!/[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/'`~]/.test(formData.password)) {
           setFormError('Password harus mengandung minimal 1 karakter khusus (!@#$%^&* dll)');
           setSubmitting(false);
           return;

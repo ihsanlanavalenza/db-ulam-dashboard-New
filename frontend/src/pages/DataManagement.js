@@ -91,9 +91,45 @@ const DataManagement = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    setShowConfirmAddModal(true);
-  };
+  e.preventDefault();
+
+  // validasi semua field
+  for (const key in formData) {
+    if (!formData[key] || formData[key].toString().trim() === '') {
+      setErrorMessage('Semua field wajib diisi!');
+      setShowErrorModal(true);
+      return;
+    }
+  }
+
+  // VALIDASI FORMAT PERIODE
+  // VALIDASI FORMAT PERIODE (FIX)
+  const regex = /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}(:\d{2})?$/;
+
+  const periode = formData.periode.trim();
+
+  if (!regex.test(periode)) {
+    setErrorMessage('Format periode harus DD/MM/YYYY HH:mm atau HH:mm:ss');
+    setShowErrorModal(true);
+    return;
+  }
+
+  // 🔥 VALIDASI TIDAK BOLEH NEGATIF
+  const numericFields = [
+    'noa', 'noaPar', 'noaNpl', 'noaLar',
+    'os', 'osPar', 'osNpl', 'osLar'
+  ];
+
+  for (const field of numericFields) {
+    if (parseFloat(formData[field]) < 0) {
+      setErrorMessage(`Field ${field.toUpperCase()} tidak boleh bernilai negatif!`);
+      setShowErrorModal(true);
+      return;
+    }
+  }
+
+  setShowConfirmAddModal(true);
+};
 
   const confirmAddData = async () => {
     try {
@@ -430,13 +466,16 @@ const DataManagement = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Periode <span className="text-red-500">*</span>
                   </label>
+
                   <input
                     type="text"
                     name="periode"
                     value={formData.periode}
                     onChange={handleFormChange}
-                    placeholder="31/12/2024 00:00:00"
+                    placeholder="DD/MM/YYYY HH:mm"
                     required
+                    pattern="^([0-2]\d|3[01])\/(0\d|1[0-2])\/\d{4} \d{2}:\d{2}$"
+                    title="Format harus DD/MM/YYYY HH:mm"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -482,8 +521,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="noa"
+                    min="0"
                     value={formData.noa}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -495,8 +536,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="noaPar"
+                    min="0"
                     value={formData.noaPar}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -508,8 +551,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="noaNpl"
+                    min="0"
                     value={formData.noaNpl}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -521,8 +566,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="noaLar"
+                    min="0"
                     value={formData.noaLar}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -532,8 +579,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="os"
+                    min="0"
                     value={formData.os}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -543,8 +592,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="osPar"
+                    min="0"
                     value={formData.osPar}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -554,8 +605,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="osNpl"
+                    min="0"
                     value={formData.osNpl}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -565,8 +618,10 @@ const DataManagement = () => {
                   <input
                     type="number"
                     name="osLar"
+                    min="0"
                     value={formData.osLar}
                     onChange={handleFormChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>

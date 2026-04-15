@@ -102,10 +102,55 @@ const createTransaction = async (req, res) => {
     } = req.body;
     
     // Validate required fields
-    if (!periode || !cabang || !namaUnit) {
+    if (
+      !periode ||
+      !cabang ||
+      !namaUnit ||
+      noa === '' ||
+      noaPar === '' ||
+      noaNpl === '' ||
+      noaLar === '' ||
+      os === '' ||
+      osPar === '' ||
+      osNpl === '' ||
+      osLar === ''
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Periode, Cabang, dan Nama Unit harus diisi'
+        message: 'Semua field wajib diisi'
+      });
+    }
+
+    // VALIDASI NEGATIF
+    const numericFields = [
+      noa, noaPar, noaNpl, noaLar,
+      os, osPar, osNpl, osLar
+    ];
+
+    for (const value of numericFields) {
+      const number = parseFloat(value);
+
+      if (isNaN(number)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Semua field numerik harus berupa angka'
+        });
+      }
+
+      if (number < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Nilai tidak boleh negatif'
+        });
+      }
+    }
+
+    const regex = /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}(:\d{2})?$/;
+
+    if (!regex.test(periode)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Format periode harus DD/MM/YYYY HH:mm'
       });
     }
 
