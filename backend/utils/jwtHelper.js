@@ -1,11 +1,18 @@
 // backend/utils/jwtHelper.js
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('FATAL: JWT_SECRET must be defined in environment variables');
+const configuredJwtSecret = (process.env.JWT_SECRET || '').trim();
+const fallbackJwtSecret = crypto
+  .createHash('sha256')
+  .update(`dashboard-mbu|${process.env.DB_HOST || 'localhost'}|${process.env.DB_NAME || 'db_ulaam'}|${process.env.PORT || '3001'}`)
+  .digest('hex');
+
+if (!configuredJwtSecret) {
+  console.warn('[SECURITY WARNING] JWT_SECRET is not set. Using fallback secret. Set JWT_SECRET in cPanel environment variables immediately.');
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = configuredJwtSecret || fallbackJwtSecret;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
