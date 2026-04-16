@@ -122,7 +122,7 @@ jobs:
           target: ${{ steps.ssh_options.outputs.target }}
           strip_components: 1
           overwrite: true
-          rm: true
+          rm: false
 
       - name: Install backend deps and restart app
         uses: appleboy/ssh-action@v1.0.3
@@ -145,13 +145,46 @@ jobs:
               exit 1
             fi
 
-            VENV_ACTIVATE=$(find "$HOME/nodevenv/public_html/dashboard-mbu/backend" -maxdepth 3 -type f -name activate 2>/dev/null | head -n 1 || true)
+            VENV_ACTIVATE=""
+            if [ -d "$HOME/nodevenv" ]; then
+              VENV_ACTIVATE=$(find "$HOME/nodevenv" -type f -path "*/public_html/*/backend/*/bin/activate" 2>/dev/null | head -n 1 || true)
+            fi
             if [ -n "$VENV_ACTIVATE" ]; then
               . "$VENV_ACTIVATE"
+              echo "Activated nodevenv: $VENV_ACTIVATE"
+            else
+              echo "nodevenv activate script not found, trying system Node.js binaries"
             fi
 
             cd "$BACKEND_DIR"
-            npm install --omit=dev --no-audit --no-fund
+
+            NPM_BIN=$(command -v npm || true)
+            if [ -z "$NPM_BIN" ]; then
+              for candidate in /opt/cpanel/ea-nodejs22/bin/npm /opt/cpanel/ea-nodejs20/bin/npm /opt/cpanel/ea-nodejs18/bin/npm; do
+                if [ -x "$candidate" ]; then
+                  NPM_BIN="$candidate"
+                  break
+                fi
+              done
+            fi
+
+            if [ -z "$NPM_BIN" ] && [ -d "$HOME/nodevenv" ]; then
+              NPM_BIN=$(find "$HOME/nodevenv" -type f -path "*/bin/npm" 2>/dev/null | head -n 1 || true)
+            fi
+
+            if [ -n "$NPM_BIN" ]; then
+              echo "Using npm: $NPM_BIN"
+              "$NPM_BIN" install --omit=dev --no-audit --no-fund
+            else
+              if [ -d node_modules ]; then
+                echo "npm not found, but node_modules exists. Skipping npm install."
+              else
+                echo "npm command not found and node_modules is missing."
+                echo "Run 'Run NPM Install' once from cPanel Node.js App."
+                exit 1
+              fi
+            fi
+
             mkdir -p tmp
             date -u +"%Y-%m-%dT%H:%M:%SZ" > tmp/restart.txt
             echo "Deploy and restart completed"
