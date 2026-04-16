@@ -31,6 +31,10 @@ jobs:
           REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
         run: npm run build
 
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --omit=dev --no-audit --no-fund
+
       - name: Prepare deploy package
         run: |
           rm -rf deploy-package
@@ -49,6 +53,7 @@ jobs:
           cp backend/package.json deploy-package/backend/
           cp backend/package-lock.json deploy-package/backend/
           cp backend/.env.example deploy-package/backend/
+          cp -R backend/node_modules deploy-package/backend/
 
           # Trigger Passenger restart after upload.
           date -u +"%Y-%m-%dT%H:%M:%SZ" > deploy-package/backend/tmp/restart.txt
@@ -123,68 +128,5 @@ jobs:
           strip_components: 1
           overwrite: true
           rm: false
-
-      - name: Install backend deps and restart app
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ steps.ssh_options.outputs.host }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ steps.ssh_options.outputs.port }}
-          script_stop: true
-          script: |
-            set -e
-            TARGET_DIR='${{ steps.ssh_options.outputs.target }}'
-            if [ "${TARGET_DIR#/}" = "$TARGET_DIR" ]; then
-              TARGET_DIR="$HOME/$TARGET_DIR"
-            fi
-
-            BACKEND_DIR="$TARGET_DIR/backend"
-            if [ ! -d "$BACKEND_DIR" ]; then
-              echo "Backend directory not found at $BACKEND_DIR"
-              exit 1
-            fi
-
-            VENV_ACTIVATE=""
-            if [ -d "$HOME/nodevenv" ]; then
-              VENV_ACTIVATE=$(find "$HOME/nodevenv" -type f -path "*/public_html/*/backend/*/bin/activate" 2>/dev/null | head -n 1 || true)
-            fi
-            if [ -n "$VENV_ACTIVATE" ]; then
-              . "$VENV_ACTIVATE"
-              echo "Activated nodevenv: $VENV_ACTIVATE"
-            else
-              echo "nodevenv activate script not found, trying system Node.js binaries"
-            fi
-
-            cd "$BACKEND_DIR"
-
-            NPM_BIN=$(command -v npm || true)
-            if [ -z "$NPM_BIN" ]; then
-              for candidate in /opt/cpanel/ea-nodejs22/bin/npm /opt/cpanel/ea-nodejs20/bin/npm /opt/cpanel/ea-nodejs18/bin/npm; do
-                if [ -x "$candidate" ]; then
-                  NPM_BIN="$candidate"
-                  break
-                fi
-              done
-            fi
-
-            if [ -z "$NPM_BIN" ] && [ -d "$HOME/nodevenv" ]; then
-              NPM_BIN=$(find "$HOME/nodevenv" -type f -path "*/bin/npm" 2>/dev/null | head -n 1 || true)
-            fi
-
-            if [ -n "$NPM_BIN" ]; then
-              echo "Using npm: $NPM_BIN"
-              "$NPM_BIN" install --omit=dev --no-audit --no-fund
-            else
-              if [ -d node_modules ]; then
-                echo "npm not found, but node_modules exists. Skipping npm install."
-              else
-                echo "npm command not found and node_modules is missing."
-                echo "Run 'Run NPM Install' once from cPanel Node.js App."
-                exit 1
-              fi
-            fi
-
-            mkdir -p tmp
-            date -u +"%Y-%m-%dT%H:%M:%SZ" > tmp/restart.txt
-            echo "Deploy and restart completed"
+          timeout: 2m
+          command_timeout: 30m
