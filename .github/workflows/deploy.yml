@@ -1,4 +1,4 @@
-name: Deploy to cPanel via FTP
+name: Deploy to cPanel via SFTP
 
 on:
   push:
@@ -34,7 +34,6 @@ jobs:
       - name: Prepare deploy package
         run: |
           rm -rf deploy-package
-          mkdir -p deploy-package/backend
           mkdir -p deploy-package/backend/tmp
 
           # Frontend build is served from dashboard-mbu root.
@@ -51,14 +50,14 @@ jobs:
           cp backend/package-lock.json deploy-package/backend/
           cp backend/.env.example deploy-package/backend/
 
-          # Trigger Passenger restart on cPanel after upload.
+          # Trigger Passenger restart after upload.
           date -u +"%Y-%m-%dT%H:%M:%SZ" > deploy-package/backend/tmp/restart.txt
 
-      - name: Normalize FTP server host
-        id: ftp_host
+      - name: Resolve SSH deploy options
+        id: ssh_options
         run: |
           raw='${{ secrets.FTP_SERVER }}'
-          clean=$(printf '%s' "$raw" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##; s#^ftps?://##; s#^https?://##; s#/.*$##')
+          clean=$(printf '%s' "$raw" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##; s#^sftp://##; s#^ssh://##; s#^ftps?://##; s#^https?://##; s#/.*$##')
 
           if [ -z "$clean" ]; then
             echo "FTP_SERVER secret is empty after normalization."
@@ -68,84 +67,73 @@ jobs:
           host="$clean"
           parsed_port=""
 
-          # If user provided host:port, split it so DNS validation works.
           if printf '%s' "$clean" | grep -Eq '^[^:]+:[0-9]+$'; then
             host="${clean%%:*}"
             parsed_port="${clean##*:}"
           fi
 
-          # cPanel web login ports are not FTP ports.
-          if [ "$parsed_port" = "2082" ] || [ "$parsed_port" = "2083" ]; then
-            echo "Detected cPanel web port ($parsed_port); using FTP default port instead."
-            parsed_port=""
-          fi
-
-          echo "value=$host" >> "$GITHUB_OUTPUT"
-          echo "parsed_port=$parsed_port" >> "$GITHUB_OUTPUT"
-
-      - name: Resolve FTP options
-        id: ftp_options
-        run: |
-          protocol='${{ secrets.FTP_PROTOCOL }}'
-          protocol=$(printf '%s' "$protocol" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n ')
-          if [ "$protocol" != "ftp" ] && [ "$protocol" != "ftps" ]; then
-            protocol="ftp"
-          fi
-
-          port='${{ secrets.FTP_PORT }}'
+          port='${{ secrets.SFTP_PORT }}'
           port=$(printf '%s' "$port" | tr -d '\r\n ')
           if ! printf '%s' "$port" | grep -Eq '^[0-9]+$'; then
-            if [ -n '${{ steps.ftp_host.outputs.parsed_port }}' ]; then
-              port='${{ steps.ftp_host.outputs.parsed_port }}'
+            if [ -n "$parsed_port" ]; then
+              port="$parsed_port"
             else
-              port="21"
+              port="22"
             fi
           fi
 
-          target="/public_html/dashboard-mbu/"
+          target='${{ secrets.SFTP_TARGET_DIR }}'
+          target=$(printf '%s' "$target" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##')
+          if [ -z "$target" ]; then
+            target="public_html/dashboard-mbu"
+          fi
+          target="${target%/}"
 
-          echo "protocol=$protocol" >> "$GITHUB_OUTPUT"
+          echo "host=$host" >> "$GITHUB_OUTPUT"
           echo "port=$port" >> "$GITHUB_OUTPUT"
           echo "target=$target" >> "$GITHUB_OUTPUT"
 
-      - name: Validate FTP host DNS
-        run: |
-          host='${{ steps.ftp_host.outputs.value }}'
-          echo "Validating DNS for FTP host: $host"
-          if ! getent ahosts "$host" >/dev/null 2>&1; then
-            echo "Cannot resolve FTP host: $host"
-            echo "Set FTP_SERVER to a valid hostname or IP (without ftp://, https://, or path)."
-            exit 1
-          fi
-
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: Deploy via SCP (SFTP)
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ steps.ftp_host.outputs.value }}
+          host: ${{ steps.ssh_options.outputs.host }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ steps.ftp_options.outputs.protocol }}
-          port: ${{ steps.ftp_options.outputs.port }}
-          local-dir: ./deploy-package/
-          server-dir: ${{ steps.ftp_options.outputs.target }}
-          dangerous-clean-slate: false
-          state-name: .ftp-deploy-sync-state.json
-          exclude: |
-            **/.git/**
-            **/.github/**
-            **/node_modules/**
-            **/README.md
-            **/*.md
-            **/.env
-            **/.env.*
-            **/tests/**
-            **/docs/**
-            **/migrations/**
-            **/.vscode/**
-            **/.idea/**
-            **/*.log
-            **/*.sql
-            **/*.sql.gz
-            **/tmp/**
-            **/temp/**
-            **/.DS_Store
+          port: ${{ steps.ssh_options.outputs.port }}
+          source: deploy-package/*
+          target: ${{ steps.ssh_options.outputs.target }}
+          strip_components: 1
+          overwrite: true
+          rm: true
+
+      - name: Install backend deps and restart app
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ steps.ssh_options.outputs.host }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ steps.ssh_options.outputs.port }}
+          script_stop: true
+          script: |
+            set -e
+            TARGET_DIR='${{ steps.ssh_options.outputs.target }}'
+            if [ "${TARGET_DIR#/}" = "$TARGET_DIR" ]; then
+              TARGET_DIR="$HOME/$TARGET_DIR"
+            fi
+
+            BACKEND_DIR="$TARGET_DIR/backend"
+            if [ ! -d "$BACKEND_DIR" ]; then
+              echo "Backend directory not found at $BACKEND_DIR"
+              exit 1
+            fi
+
+            VENV_ACTIVATE=$(find "$HOME/nodevenv/public_html/dashboard-mbu/backend" -maxdepth 3 -type f -name activate 2>/dev/null | head -n 1 || true)
+            if [ -n "$VENV_ACTIVATE" ]; then
+              . "$VENV_ACTIVATE"
+            fi
+
+            cd "$BACKEND_DIR"
+            npm install --omit=dev --no-audit --no-fund
+            mkdir -p tmp
+            date -u +"%Y-%m-%dT%H:%M:%SZ" > tmp/restart.txt
+            echo "Deploy and restart completed"
