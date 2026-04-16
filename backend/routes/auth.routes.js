@@ -22,6 +22,13 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, authController.login);
 
 /**
+ * @route   POST /api/auth/refresh
+ * @desc    Refresh access token using refresh token
+ * @access  Public
+ */
+router.post('/refresh', authController.refresh);
+
+/**
  * @route   POST /api/auth/logout
  * @desc    Logout user and invalidate session
  * @access  Private

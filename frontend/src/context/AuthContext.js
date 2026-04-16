@@ -48,9 +48,12 @@ export const AuthProvider = ({ children }) => {
             const refreshResponse = await authAPI.refresh();
 
             if (refreshResponse.data.success) {
-              const { accessToken } = refreshResponse.data.data;
+              const { accessToken, refreshToken } = refreshResponse.data.data;
 
               localStorage.setItem('accessToken', accessToken);
+              if (refreshToken) {
+                localStorage.setItem('refreshToken', refreshToken);
+              }
 
               // 🔹 RETRY VERIFY
               const retry = await authAPI.verify();

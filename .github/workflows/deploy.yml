@@ -9,8 +9,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repository
@@ -20,33 +18,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: |
-          npm ci
-          npm install axios --no-save
-
-      - name: Verify axios dependency
-        working-directory: frontend
-        run: |
-          npm ls axios
-          test -d node_modules/axios
+        run: npm ci
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
         run: npm run build
 
       - name: Prepare deploy package
         run: |
           rm -rf deploy-package
-          mkdir -p deploy-package
+          mkdir -p deploy-package/backend
+          mkdir -p deploy-package/backend/tmp
 
-          # Frontend static files are served from web root.
+          # Frontend build is served from dashboard-mbu root.
           cp -R frontend/build/. deploy-package/
 
-          # Backend files for Node.js runtime on cPanel.
-          mkdir -p deploy-package/backend
+          # Backend runtime files for cPanel Node.js app.
           cp -R backend/config deploy-package/backend/
           cp -R backend/controllers deploy-package/backend/
           cp -R backend/middleware deploy-package/backend/
@@ -56,6 +50,9 @@ jobs:
           cp backend/package.json deploy-package/backend/
           cp backend/package-lock.json deploy-package/backend/
           cp backend/.env.example deploy-package/backend/
+
+          # Trigger Passenger restart on cPanel after upload.
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > deploy-package/backend/tmp/restart.txt
 
       - name: Normalize FTP server host
         id: ftp_host
@@ -86,6 +83,31 @@ jobs:
           echo "value=$host" >> "$GITHUB_OUTPUT"
           echo "parsed_port=$parsed_port" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve FTP options
+        id: ftp_options
+        run: |
+          protocol='${{ secrets.FTP_PROTOCOL }}'
+          protocol=$(printf '%s' "$protocol" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n ')
+          if [ "$protocol" != "ftp" ] && [ "$protocol" != "ftps" ]; then
+            protocol="ftp"
+          fi
+
+          port='${{ secrets.FTP_PORT }}'
+          port=$(printf '%s' "$port" | tr -d '\r\n ')
+          if ! printf '%s' "$port" | grep -Eq '^[0-9]+$'; then
+            if [ -n '${{ steps.ftp_host.outputs.parsed_port }}' ]; then
+              port='${{ steps.ftp_host.outputs.parsed_port }}'
+            else
+              port="21"
+            fi
+          fi
+
+          target="/public_html/dashboard-mbu/"
+
+          echo "protocol=$protocol" >> "$GITHUB_OUTPUT"
+          echo "port=$port" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+
       - name: Validate FTP host DNS
         run: |
           host='${{ steps.ftp_host.outputs.value }}'
@@ -96,19 +118,18 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy via FTP (primary)
-        id: deploy_primary
-        continue-on-error: true
+      - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ steps.ftp_host.outputs.value }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ secrets.FTP_PROTOCOL || 'ftp' }}
-          port: ${{ secrets.FTP_PORT || steps.ftp_host.outputs.parsed_port || 21 }}
+          protocol: ${{ steps.ftp_options.outputs.protocol }}
+          port: ${{ steps.ftp_options.outputs.port }}
           local-dir: ./deploy-package/
-          server-dir: /public_html/
-          dangerous-clean-slate: true
+          server-dir: ${{ steps.ftp_options.outputs.target }}
+          dangerous-clean-slate: false
+          state-name: .ftp-deploy-sync-state.json
           exclude: |
             **/.git/**
             **/.github/**
@@ -128,56 +149,3 @@ jobs:
             **/tmp/**
             **/temp/**
             **/.DS_Store
-
-      - name: Deploy via FTPS fallback (port 990)
-        id: deploy_fallback
-        if: steps.deploy_primary.outcome == 'failure'
-        continue-on-error: true
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ steps.ftp_host.outputs.value }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 990
-          local-dir: ./deploy-package/
-          server-dir: /public_html/
-          dangerous-clean-slate: true
-          exclude: |
-            **/.git/**
-            **/.github/**
-            **/node_modules/**
-            **/README.md
-            **/*.md
-            **/.env
-            **/.env.*
-            **/tests/**
-            **/docs/**
-            **/migrations/**
-            **/.vscode/**
-            **/.idea/**
-            **/*.log
-            **/*.sql
-            **/*.sql.gz
-            **/tmp/**
-            **/temp/**
-            **/.DS_Store
-
-      - name: Verify deploy result
-        if: always()
-        run: |
-          echo "Primary outcome=${{ steps.deploy_primary.outcome }}, conclusion=${{ steps.deploy_primary.conclusion }}"
-          echo "Fallback outcome=${{ steps.deploy_fallback.outcome }}, conclusion=${{ steps.deploy_fallback.conclusion }}"
-
-          if [ '${{ steps.deploy_primary.conclusion }}' = 'success' ] || [ '${{ steps.deploy_primary.outcome }}' = 'success' ]; then
-            echo "Primary deploy succeeded"
-            exit 0
-          fi
-
-          if [ '${{ steps.deploy_fallback.conclusion }}' = 'success' ] || [ '${{ steps.deploy_fallback.outcome }}' = 'success' ]; then
-            echo "Fallback deploy succeeded"
-            exit 0
-          fi
-
-          echo "Deploy failed in both primary and fallback attempts."
-          exit 1

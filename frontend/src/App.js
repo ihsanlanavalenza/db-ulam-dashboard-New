@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from "react-router-dom";
 import Select from "react-select";
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -170,7 +170,7 @@ const MainLayout = () => {
         <div className="bg-[#ffffff] text-white p-5 flex items-center justify-between">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <img src="/logo-login.png" alt="PNM Logo" className="h-30" />
+              <img src="/Logo-login.png" alt="PNM Logo" className="h-30" />
             </div>
           )}
           <button
@@ -559,6 +559,7 @@ const MainLayout = () => {
               path="/write-off" 
               element={<WriteOff selectedCabang={selectedCabang} selectedUnit={selectedUnit} selectedDate={selectedDate} />} 
             />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </div>

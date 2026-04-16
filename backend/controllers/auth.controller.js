@@ -1,7 +1,7 @@
 // backend/controllers/auth.controller.js
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
-const { generateAccessToken, generateRefreshToken } = require('../utils/jwtHelper');
+const { generateAccessToken, generateRefreshToken, verifyToken: verifyJwtToken } = require('../utils/jwtHelper');
 const { sanitizeInput, sanitizeAlphanumeric } = require('../utils/sanitize');
 const crypto = require('crypto');
 
@@ -91,6 +91,70 @@ const login = async (req, res) => {
       success: false,
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Refresh Token - Generate new access token using refresh token
+ */
+const refresh = async (req, res) => {
+  try {
+    const refreshToken = sanitizeInput(req.body.refreshToken, 'string');
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Refresh token wajib diisi'
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = verifyJwtToken(refreshToken);
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh token tidak valid atau telah kadaluarsa'
+      });
+    }
+
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token yang diberikan bukan refresh token'
+      });
+    }
+
+    const [users] = await db.promise().query(
+      'SELECT id, username, email, role, level, cabang_id, unit_id, is_active FROM users WHERE id = ? AND is_active = TRUE',
+      [decoded.id]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'User tidak ditemukan atau tidak aktif'
+      });
+    }
+
+    const user = users[0];
+    const newAccessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    return res.json({
+      success: true,
+      message: 'Token berhasil diperbarui',
+      data: {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken
+      }
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
     });
   }
 };
@@ -207,6 +271,7 @@ const getProfile = async (req, res) => {
 
 module.exports = {
   login,
+  refresh,
   logout,
   verifyToken,
   getProfile

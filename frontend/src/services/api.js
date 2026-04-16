@@ -1,5 +1,6 @@
 // frontend/src/services/api.js
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001/api';
+const rawApiBaseUrl = process.env.REACT_APP_API_BASE_URL || '/api';
+const API_BASE_URL = rawApiBaseUrl.replace(/\/+$/, '') || '/api';
 
 const normalizeHeaders = (headers) => {
   const out = {};
@@ -20,7 +21,8 @@ const clearAuthAndRedirect = () => {
 };
 
 const buildUrl = (path, params) => {
-  const base = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const base = path.startsWith('http') ? path : `${API_BASE_URL}${normalizedPath}`;
   const url = new URL(base, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
 
   if (params && typeof params === 'object') {
@@ -104,7 +106,7 @@ const api = {
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
-  refresh: () => api.post('/auth/refresh'),
+  refresh: () => api.post('/auth/refresh', { refreshToken: localStorage.getItem('refreshToken') }),
   verify: () => api.get('/auth/verify'),
   getProfile: () => api.get('/auth/profile'),
 };
