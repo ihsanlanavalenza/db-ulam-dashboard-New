@@ -82,6 +82,12 @@ jobs:
             fi
           fi
 
+          # cPanel web/FTP ports are not SSH/SFTP endpoints.
+          if [ "$port" = "2082" ] || [ "$port" = "2083" ] || [ "$port" = "21" ] || [ "$port" = "990" ]; then
+            echo "Detected non-SSH port ($port). Forcing SFTP to port 22."
+            port="22"
+          fi
+
           target='${{ secrets.SFTP_TARGET_DIR }}'
           target=$(printf '%s' "$target" | tr -d '\r\n' | sed -E 's#^[[:space:]]+##; s#[[:space:]]+$##')
           if [ -z "$target" ]; then
@@ -92,6 +98,18 @@ jobs:
           echo "host=$host" >> "$GITHUB_OUTPUT"
           echo "port=$port" >> "$GITHUB_OUTPUT"
           echo "target=$target" >> "$GITHUB_OUTPUT"
+
+      - name: Validate SSH endpoint
+        run: |
+          host='${{ steps.ssh_options.outputs.host }}'
+          port='${{ steps.ssh_options.outputs.port }}'
+
+          echo "Validating SSH endpoint: $host:$port"
+          if ! timeout 10 ssh-keyscan -p "$port" "$host" >/dev/null 2>&1; then
+            echo "SSH handshake failed on $host:$port"
+            echo "Use SSH/SFTP port (usually 22), not cPanel web ports (2082/2083)."
+            exit 1
+          fi
 
       - name: Deploy via SCP (SFTP)
         uses: appleboy/scp-action@v0.1.7
